@@ -8,14 +8,14 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-
 FROM node:20-alpine AS deps
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --omit=dev
-
+RUN npm ci --omit=dev && \
+    find /app/node_modules -type d -exec chmod 755 {} \; && \
+    find /app/node_modules -type f -exec chmod 644 {} \;
 
 FROM dhi.io/node:20-debian13
 
