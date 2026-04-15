@@ -50,6 +50,9 @@ inputs:
   snyk_project_id:
     description: Snyk project ID
     required: false
+  report_url:
+    description: Direct report URL (override)
+    required: false
 
 runs:
   using: composite
@@ -59,10 +62,15 @@ runs:
       id: build_url
       shell: bash
       run: |
-        if [ "${{ inputs.tool }}" = "sonar" ]; then
+        if [ -n "${{ inputs.report_url }}" ]; then
+          echo "url=${{ inputs.report_url }}" >> $GITHUB_OUTPUT
+
+        elif [ "${{ inputs.tool }}" = "sonar" ]; then
           echo "url=${{ inputs.sonar_host_url }}/dashboard?id=${{ inputs.sonar_project_key }}" >> $GITHUB_OUTPUT
+
         elif [ "${{ inputs.tool }}" = "snyk" ]; then
           echo "url=https://app.snyk.io/org/${{ inputs.snyk_org }}/projects/${{ inputs.snyk_project_id }}" >> $GITHUB_OUTPUT
+
         else
           echo "url=${{ inputs.workflow_url }}" >> $GITHUB_OUTPUT
         fi
@@ -109,7 +117,7 @@ runs:
         webhook-type: incoming-webhook
         payload: |
           attachments:
-            - color: "#dc2626"  
+            - color: "#dc2626"  # red failure color
               blocks:
 
                 - type: header
