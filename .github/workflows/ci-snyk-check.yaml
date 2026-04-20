@@ -62,10 +62,10 @@ jobs:
 
           if [ "$STATUS" = "failure" ]; then
             echo "notify_title=Snyk Failed" >> $GITHUB_OUTPUT
-            echo "notify_summary=High severity vulnerabilities detected in frontend" >> $GITHUB_OUTPUT
+            echo "notify_summary=Security vulnerabilities detected (high severity)" >> $GITHUB_OUTPUT
           else
             echo "notify_title=Snyk Passed" >> $GITHUB_OUTPUT
-            echo "notify_summary=No high severity vulnerabilities in frontend" >> $GITHUB_OUTPUT
+            echo "notify_summary=No high severity vulnerabilities" >> $GITHUB_OUTPUT
           fi
 
       - name: Fail if snyk failed
