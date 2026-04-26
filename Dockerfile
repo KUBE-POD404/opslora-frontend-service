@@ -15,7 +15,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-
+# multi stage
 FROM dhi.io/node:20-debian13
 
 WORKDIR /app
