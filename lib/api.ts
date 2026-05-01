@@ -38,7 +38,11 @@ export async function apiFetch<T>(
 
     try {
       const error = await res.json()
-      message = error.error ?? error.detail ?? message
+      message =
+        error.error?.message ??
+        error.error ??
+        error.detail ??
+        message
     } catch {}
 
     throw new Error(message)
