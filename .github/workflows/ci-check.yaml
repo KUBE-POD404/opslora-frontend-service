@@ -1,0 +1,74 @@
+name: Frontend Checks
+
+on:
+  workflow_call:
+    outputs:
+      check_status:
+        value: ${{ jobs.check.outputs.check_status }}
+      failure_stage:
+        value: ${{ jobs.check.outputs.failure_stage }}
+      report_url:
+        value: ${{ jobs.check.outputs.report_url }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      check_status: ${{ steps.result.outputs.status }}
+      failure_stage: ${{ steps.failure.outputs.stage }}
+      report_url: ${{ steps.report.outputs.url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        id: install
+        run: npm ci
+
+      - name: Run lint
+        id: lint
+        run: npm run lint
+
+      - name: Run typecheck
+        id: typecheck
+        run: npx tsc --noEmit
+
+      - name: Build frontend
+        id: build
+        run: npm run build
+
+      - id: report
+        if: always()
+        run: echo "url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+
+      - id: failure
+        if: always()
+        run: |
+          if [ "${{ steps.install.outcome }}" = "failure" ]; then
+            echo "stage=dependency_install_failed" >> "$GITHUB_OUTPUT"
+          elif [ "${{ steps.lint.outcome }}" = "failure" ]; then
+            echo "stage=lint_failed" >> "$GITHUB_OUTPUT"
+          elif [ "${{ steps.typecheck.outcome }}" = "failure" ]; then
+            echo "stage=typecheck_failed" >> "$GITHUB_OUTPUT"
+          elif [ "${{ steps.build.outcome }}" = "failure" ]; then
+            echo "stage=build_failed" >> "$GITHUB_OUTPUT"
+          else
+            echo "stage=success" >> "$GITHUB_OUTPUT"
+          fi
+
+      - id: result
+        if: always()
+        run: |
+          if [ "${{ steps.install.outcome }}" = "failure" ] || \
+             [ "${{ steps.lint.outcome }}" = "failure" ] || \
+             [ "${{ steps.typecheck.outcome }}" = "failure" ] || \
+             [ "${{ steps.build.outcome }}" = "failure" ]; then
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=success" >> "$GITHUB_OUTPUT"
+          fi
