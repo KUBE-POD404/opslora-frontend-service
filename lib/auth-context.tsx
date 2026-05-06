@@ -1,41 +1,36 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useState } from "react"
+
+import {
+  AuthTokens,
+  getStoredTokens,
+  logoutSession,
+  storeTokens,
+} from "@/lib/api"
 
 type AuthContextType = {
   token: string | null
   isAuthenticated: boolean
   loading: boolean
-  login: (token: string) => void
-  logout: () => void
+  login: (tokens: AuthTokens) => void
+  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
 
-  const [token, setToken] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [token, setToken] = useState<string | null>(() => getStoredTokens().accessToken)
+  const [loading] = useState(false)
 
-  useEffect(() => {
-
-    const stored = localStorage.getItem("token")
-
-    if (stored) {
-      setToken(stored)
-    }
-
-    setLoading(false)
-
-  }, [])
-
-  function login(token: string) {
-    localStorage.setItem("token", token)
-    setToken(token)
+  function login(tokens: AuthTokens) {
+    storeTokens(tokens)
+    setToken(tokens.access_token)
   }
 
-  function logout() {
-    localStorage.removeItem("token")
+  async function logout() {
+    await logoutSession()
     setToken(null)
   }
 

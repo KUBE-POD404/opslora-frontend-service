@@ -42,6 +42,8 @@ type Payment = {
     paid_at: string
 }
 
+type PaymentMethod = "CASH" | "CARD" | "UPI" | "BANK_TRANSFER" | "CHEQUE" | "ONLINE"
+
 /* ================= PAGE ================= */
 
 export default function AddPaymentPage() {
@@ -54,8 +56,7 @@ export default function AddPaymentPage() {
     const [saving, setSaving] = useState(false)
 
     const [amount, setAmount] = useState(0)
-    const [method, setMethod] =
-        useState<"CASH" | "CARD" | "UPI" | "BANK_TRANSFER">("CASH")
+    const [method, setMethod] = useState<PaymentMethod>("CASH")
 
     /* ================= LOAD DATA ================= */
 
@@ -67,8 +68,8 @@ export default function AddPaymentPage() {
 
                 setInvoice(inv)
                 setPayments(pays)
-            } catch (err: any) {
-                toast.error(err.message)
+            } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to load invoice")
                 router.push("/invoices")
             } finally {
                 setLoading(false)
@@ -102,8 +103,8 @@ export default function AddPaymentPage() {
 
             toast.success("Payment added")
             router.push(`/invoices/${invoice.id}`)
-        } catch (err: any) {
-            toast.error(err.message)
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to add payment")
         } finally {
             setSaving(false)
         }
@@ -181,7 +182,7 @@ export default function AddPaymentPage() {
             <div className="rounded-md border p-6 space-y-6">
                 <div className="space-y-2">
                     <Label>Payment Method</Label>
-                    <Select value={method} onValueChange={v => setMethod(v as any)}>
+                    <Select value={method} onValueChange={v => setMethod(v as PaymentMethod)}>
                         <SelectTrigger>
                             <SelectValue />
                         </SelectTrigger>
@@ -190,6 +191,8 @@ export default function AddPaymentPage() {
                             <SelectItem value="CARD">Card</SelectItem>
                             <SelectItem value="UPI">UPI</SelectItem>
                             <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                            <SelectItem value="CHEQUE">Cheque</SelectItem>
+                            <SelectItem value="ONLINE">Online</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>

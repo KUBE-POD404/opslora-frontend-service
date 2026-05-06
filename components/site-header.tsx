@@ -1,7 +1,7 @@
 "use client"
 
-import { SidebarIcon } from "lucide-react"
-import { usePathname } from "next/navigation"
+import { LogOut, SidebarIcon } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
 
 import {
   Breadcrumb,
@@ -16,10 +16,18 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useSidebar } from "@/components/ui/sidebar"
 import { ThemeToggle } from "@/components/theme_toggle"
+import { useAuth } from "@/lib/auth-context"
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar()
+  const { logout } = useAuth()
   const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleLogout() {
+    await logout()
+    router.replace("/auth/login")
+  }
 
   /* ================= BREADCRUMB LOGIC ================= */
 
@@ -110,8 +118,17 @@ if (/^\/invoices\/\d+\/pay$/.test(pathname)) {
           </BreadcrumbList>
         </Breadcrumb>
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1">
           <ThemeToggle />
+          <Button
+            className="h-8 w-8"
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
+            title="Logout"
+          >
+            <LogOut />
+          </Button>
         </div>
       </div>
     </header>

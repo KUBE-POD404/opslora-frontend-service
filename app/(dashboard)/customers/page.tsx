@@ -264,8 +264,8 @@ export default function CustomersPage() {
             }
 
             setOpen(false)
-        } catch (err: any) {
-            toast.error(err.message)
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to save customer")
         } finally {
             setSaving(false)
         }

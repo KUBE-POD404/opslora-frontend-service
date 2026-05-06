@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { cn } from "@/lib/utils"
-import { apiFetch } from "@/lib/api"
+import { apiFetch, type AuthTokens } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 
 import { Button } from "@/components/ui/button"
@@ -54,7 +54,7 @@ export function LoginForm({
 
     try {
 
-      const res = await apiFetch<{ access_token: string }>("/auth/login", {
+      const res = await apiFetch<AuthTokens>("/auth/login", {
         method: "POST",
         body: JSON.stringify({
           organization_slug: orgSlug,
@@ -63,12 +63,12 @@ export function LoginForm({
         }),
       })
 
-      login(res.access_token)
+      login(res)
 
       router.replace("/")
 
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Login failed")
     }
 
     setLoading(false)
