@@ -196,7 +196,7 @@ export default function InvoicesPage() {
                                 <TableRow key={inv.id}>
                                     <TableCell className="font-medium">{inv.invoice_number || `#${inv.id}`}</TableCell>
                                     <TableCell>#{inv.order_id}</TableCell>
-                                    <TableCell>{inv.customer_name || "—"}</TableCell>
+                                    <TableCell>{inv.customer_name || "-"}</TableCell>
                                     <TableCell>{inv.total.toFixed(2)}</TableCell>
                                     <TableCell>
                                         <span

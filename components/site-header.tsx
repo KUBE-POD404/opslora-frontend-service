@@ -18,8 +18,8 @@ import { useAuth } from "@/lib/auth-context"
 import { useSidebar } from "@/components/ui/sidebar"
 
 function getBreadcrumb(pathname: string) {
-  if (pathname === "/") {
-    return ["Dashboard", "/", "Overview"] as const
+  if (pathname === "/dashboard") {
+    return ["Dashboard", "/dashboard", "Overview"] as const
   }
 
   if (pathname === "/customers/new") {
@@ -67,14 +67,30 @@ function getBreadcrumb(pathname: string) {
   }
 
   if (pathname === "/settings") {
-    return ["Settings", "/settings", "Organization Settings"] as const
+    return ["Settings", "/settings", "Business Profile"] as const
+  }
+
+  if (pathname === "/settings/tax-profile") {
+    return ["Settings", "/settings", "Tax Profile"] as const
+  }
+
+  if (pathname === "/settings/invoice-defaults") {
+    return ["Settings", "/settings", "Invoice Defaults"] as const
+  }
+
+  if (pathname === "/settings/feature-flags") {
+    return ["Settings", "/settings", "Feature Flags"] as const
+  }
+
+  if (pathname === "/settings/portal") {
+    return ["Settings", "/settings", "Portal"] as const
   }
 
   if (pathname === "/settings/profile") {
     return ["Settings", "/settings", "Profile Settings"] as const
   }
 
-  return ["Opslora", "/", "Workspace"] as const
+  return ["Opslora", "/dashboard", "Workspace"] as const
 }
 
 export function SiteHeader() {

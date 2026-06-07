@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import {
+  Building2,
   KeyRound,
   Laptop,
   Mail,
@@ -224,47 +225,63 @@ export default function ProfileSettingsPage() {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Profile Settings</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-2xl font-semibold text-[#121317] sm:text-[28px]">Profile Settings</h1>
+          <p className="mt-1 max-w-3xl text-sm text-[#636973]">
             Manage your signed-in user profile, preferences, and account security.
             Organization settings stay separate.
           </p>
         </div>
-        <Button form="profile-form" disabled={saving}>
-          <Save className="h-4 w-4" />
-          {saving ? "Saving..." : "Save changes"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Badge className="border-[#b8d1fa] bg-[#e8f2ff] text-[#255cd4] hover:bg-[#e8f2ff]">
+            User scope
+          </Badge>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 rounded-md"
+            onClick={() => setForm(profileToForm(profile))}
+            disabled={saving}
+          >
+            Discard
+          </Button>
+          <Button form="profile-form" className="h-9 rounded-md bg-[#181c24] text-white hover:bg-[#262a33]" disabled={saving}>
+            <Save className="h-4 w-4" />
+            {saving ? "Saving..." : "Save changes"}
+          </Button>
+        </div>
       </div>
 
-      <Card>
-        <CardContent className="flex flex-col gap-4 pt-0 sm:flex-row sm:items-center sm:justify-between">
+      <Card className="rounded-lg border-[#e3e4e8]">
+        <CardContent className="grid gap-5 pt-0 lg:grid-cols-[minmax(0,1fr)_minmax(320px,520px)] lg:items-center">
           <div className="flex items-center gap-4">
-            <div className="flex size-14 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
+            <div className="flex size-16 items-center justify-center rounded-full bg-[#181c24] text-lg font-semibold text-white">
               {initials(profile)}
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-lg font-semibold">{displayName}</h2>
+                <h2 className="text-xl font-semibold text-[#121317]">{displayName}</h2>
                 {profile?.roles.map((role) => (
-                  <Badge key={role} variant="secondary">
+                  <Badge key={role} className="border-[#b8e5c7] bg-[#e8f9f0] text-[#1a8557] hover:bg-[#e8f9f0]">
                     {role}
                   </Badge>
                 ))}
+                <Badge className="border-[#f0c770] bg-[#fff6db] text-[#b86b0d] hover:bg-[#fff6db]">
+                  2FA ready
+                </Badge>
               </div>
               <p className="text-sm text-muted-foreground">{profile?.email}</p>
             </div>
           </div>
-
-          <div className="grid gap-1 text-sm text-muted-foreground sm:text-right">
-            <span>{profile?.organization_name}</span>
-            <span>{profile?.organization_slug}</span>
-          </div>
+          <p className="text-sm leading-5 text-[#636973]">
+            This page changes the current user only. Business identity, invoice settings,
+            and feature flags remain in Organization Settings.
+          </p>
         </CardContent>
       </Card>
 
       <form id="profile-form" onSubmit={handleSave}>
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card>
+          <Card className="rounded-lg border-[#e3e4e8]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserRound className="h-4 w-4" />
@@ -320,39 +337,66 @@ export default function ProfileSettingsPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-lg border-[#e3e4e8]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Preferences
+                <Building2 className="h-4 w-4" />
+                Workspace identity
               </CardTitle>
               <CardDescription>
-                Default choices that keep repeated admin workflows predictable.
+                Role and organization membership are read-only here. Admins manage
+                access from team settings later.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <FieldGroup>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field>
-                    <FieldLabel htmlFor="timezone">Timezone</FieldLabel>
-                    <Input
-                      id="timezone"
-                      value={form.timezone}
-                      onChange={(e) => updateForm("timezone", e.target.value)}
-                      placeholder="Asia/Calcutta"
-                    />
+                    <FieldLabel>Role</FieldLabel>
+                    <Input value={profile?.roles[0] ?? "Member"} disabled />
+                  </Field>
+                  <Field>
+                    <FieldLabel>Organization</FieldLabel>
+                    <Input value={profile?.organization_name ?? "Opslora"} disabled />
+                  </Field>
+                  <Field>
+                    <FieldLabel>Default workspace</FieldLabel>
+                    <Input value={profile?.organization_slug ?? "main-workspace"} disabled />
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="language">Language</FieldLabel>
-                    <Input
-                      id="language"
-                      value={form.language}
-                      onChange={(e) => updateForm("language", e.target.value)}
-                      placeholder="English"
-                    />
+                    <Input id="language" value={form.language} onChange={(e) => updateForm("language", e.target.value)} />
                   </Field>
                 </div>
+              </FieldGroup>
+            </CardContent>
+          </Card>
+        </div>
+      </form>
 
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <Card className="rounded-lg border-[#e3e4e8]">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Preferences
+            </CardTitle>
+            <CardDescription>
+              Default choices that make the admin app faster for repeated daily work.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="timezone">Timezone</FieldLabel>
+                <Input
+                  id="timezone"
+                  form="profile-form"
+                  value={form.timezone}
+                  onChange={(e) => updateForm("timezone", e.target.value)}
+                  placeholder="Asia/Calcutta"
+                />
+              </Field>
                 <PreferenceToggle
                   id="email_workflow_summaries"
                   title="Email workflow summaries"
@@ -370,14 +414,11 @@ export default function ProfileSettingsPage() {
                   checked={form.compact_tables}
                   onCheckedChange={(checked) => updateForm("compact_tables", checked)}
                 />
-              </FieldGroup>
-            </CardContent>
-          </Card>
-        </div>
-      </form>
+            </FieldGroup>
+          </CardContent>
+        </Card>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <Card>
+        <Card className="rounded-lg border-[#e3e4e8]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" />
@@ -439,8 +480,9 @@ export default function ProfileSettingsPage() {
             </form>
           </CardContent>
         </Card>
+      </div>
 
-        <Card>
+      <Card className="rounded-lg border-[#e3e4e8]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Laptop className="h-4 w-4" />
@@ -471,7 +513,6 @@ export default function ProfileSettingsPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
     </div>
   )
 }

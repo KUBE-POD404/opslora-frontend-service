@@ -46,11 +46,13 @@ export function LoginForm({
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
     setLoading(true)
+    setError("")
 
     try {
 
@@ -65,10 +67,10 @@ export function LoginForm({
 
       login(res)
 
-      router.replace("/")
+      router.replace("/dashboard")
 
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Login failed")
+      setError(err instanceof Error ? err.message : "Login failed")
     }
 
     setLoading(false)
@@ -91,12 +93,17 @@ export function LoginForm({
           <form onSubmit={handleSubmit}>
 
             <FieldGroup>
+              {error && (
+                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
 
               <Field>
                 <FieldLabel htmlFor="org">Organization Slug</FieldLabel>
                 <Input
                   id="org"
-                  placeholder="your-company"
+                  placeholder="opslora"
                   value={orgSlug}
                   onChange={(e) => setOrgSlug(normalizeSlug(e.target.value))}
                   required
@@ -108,7 +115,7 @@ export function LoginForm({
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder="admin@opslora.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

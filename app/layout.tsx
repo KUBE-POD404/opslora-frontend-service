@@ -5,7 +5,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/lib/auth-context";
 
 export const metadata: Metadata = {
-  title: "Sales Dashboard",
+  title: "Opslora",
+  description: "Business operations platform for customers, inventory, orders, invoices, and payments.",
 };
 
 export default function RootLayout({

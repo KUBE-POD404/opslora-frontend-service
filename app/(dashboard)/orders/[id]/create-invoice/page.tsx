@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter, useParams } from "next/navigation"
+import { useEffect, useMemo, useState } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { Loader2, ReceiptText } from "lucide-react"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -24,33 +24,39 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-
 import { apiFetch } from "@/lib/api"
 
-/* ================= TYPES ================= */
-
 type OrderItem = {
+  product_id?: number | null
+  sku?: string | null
   product_name: string
+  hsn_sac_code?: string | null
+  unit_of_measure?: string | null
   quantity: number
   unit_price: number
+  tax_rate?: number | null
 }
 
 type Order = {
   id: number
   customer_id: number
+  status: string
+  customer_name?: string | null
+  customer_email?: string | null
+  customer_gstin?: string | null
+  customer_place_of_supply?: string | null
+  billing_state?: string | null
   items: OrderItem[]
   total: number
 }
-
-/* ================= HELPERS ================= */
-
-const TAX_RATE = 0.18
 
 function round(value: number) {
   return Math.round(value * 100) / 100
 }
 
-/* ================= PAGE ================= */
+function money(value: number) {
+  return `Rs ${value.toFixed(2)}`
+}
 
 export default function CreateInvoicePage() {
   const router = useRouter()
@@ -58,23 +64,32 @@ export default function CreateInvoicePage() {
 
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
-  const [customerName, setCustomerName] = useState<string>("")
-
+  const [customerName, setCustomerName] = useState("")
   const [discountType, setDiscountType] =
     useState<"NONE" | "FLAT" | "PERCENT">("NONE")
   const [discountValue, setDiscountValue] = useState(0)
   const [saving, setSaving] = useState(false)
 
-  /* ================= CALCULATIONS ================= */
+  const linePreview = useMemo(() => {
+    if (!order) return []
 
-  const subtotal = order
-    ? order.items.reduce(
-      (sum, item) => sum + item.quantity * item.unit_price,
-      0
-    )
-    : 0
+    return order.items.map((item) => {
+      const taxableValue = round(item.quantity * item.unit_price)
+      const taxRate = Number(item.tax_rate || 0)
+      const taxAmount = round((taxableValue * taxRate) / 100)
 
-  const tax = round(subtotal * TAX_RATE)
+      return {
+        ...item,
+        taxRate,
+        taxableValue,
+        taxAmount,
+        lineTotal: round(taxableValue + taxAmount),
+      }
+    })
+  }, [order])
+
+  const subtotal = round(linePreview.reduce((sum, item) => sum + item.taxableValue, 0))
+  const tax = round(linePreview.reduce((sum, item) => sum + item.taxAmount, 0))
 
   let discountAmount = 0
   if (discountType === "FLAT") discountAmount = discountValue
@@ -85,14 +100,11 @@ export default function CreateInvoicePage() {
 
   const total = round(subtotal + tax - discountAmount)
 
-  /* ---------- reset discount value when NONE ---------- */
   useEffect(() => {
     if (discountType === "NONE") {
       setDiscountValue(0)
     }
   }, [discountType])
-
-  /* ================= LOAD ORDER ================= */
 
   useEffect(() => {
     if (!id) return
@@ -102,6 +114,7 @@ export default function CreateInvoicePage() {
         setLoading(true)
         const orderData = await apiFetch<Order>(`/orders/${id}`)
         setOrder(orderData)
+
         const customerData = await apiFetch<{ id: number; name: string }>(
           `/customers/${orderData.customer_id}`
         )
@@ -116,8 +129,6 @@ export default function CreateInvoicePage() {
 
     loadOrder()
   }, [id, router])
-
-  /* ================= CREATE INVOICE ================= */
 
   async function handleCreateInvoice() {
     if (!id) return
@@ -142,8 +153,6 @@ export default function CreateInvoicePage() {
     }
   }
 
-  /* ================= RENDER ================= */
-
   if (loading) {
     return (
       <div className="flex justify-center py-24">
@@ -155,112 +164,147 @@ export default function CreateInvoicePage() {
   if (!order) return null
 
   return (
-    <div className="mx-auto max-w-4xl space-y-10">
-      {/* HEADER */}
-      <div className="text-center space-y-1">
-        <h1 className="text-3xl font-semibold">Create Invoice</h1>
-        <p className="text-muted-foreground">
-          Order #{order.id} • {customerName}
-        </p>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-[#12141a]">Create Invoice</h1>
+          <p className="text-sm text-[#6b707d]">
+            Order #{order.id} - {order.customer_name || customerName}
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => router.push("/orders")}>
+          Back to orders
+        </Button>
       </div>
 
-      {/* INVOICE CARD */}
-      <div className="rounded-xl border bg-background shadow-sm p-8 space-y-8">
-        {/* ITEMS */}
+      <div className="rounded-lg border border-[#e0e4eb] bg-white p-6 shadow-sm space-y-8">
+        <div className="grid gap-3 rounded-lg border border-[#e0e4eb] bg-[#f8f9fa] p-4 md:grid-cols-4">
+          <PreviewMeta label="Order status" value={order.status} />
+          <PreviewMeta label="Customer" value={order.customer_name || customerName} />
+          <PreviewMeta label="GSTIN" value={order.customer_gstin || "-"} />
+          <PreviewMeta
+            label="Place of supply"
+            value={order.customer_place_of_supply || order.billing_state || "-"}
+          />
+        </div>
+
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Product</TableHead>
+              <TableHead>HSN/SAC</TableHead>
               <TableHead className="text-right">Qty</TableHead>
-              <TableHead className="text-right">Unit</TableHead>
+              <TableHead className="text-right">Unit price</TableHead>
+              <TableHead className="text-right">Taxable</TableHead>
+              <TableHead className="text-right">Tax</TableHead>
               <TableHead className="text-right">Total</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {order.items.map((item, i) => (
-              <TableRow key={i}>
-                <TableCell>{item.product_name}</TableCell>
+            {linePreview.map((item, index) => (
+              <TableRow key={index}>
+                <TableCell>
+                  <div className="font-medium">{item.product_name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {item.sku || "Manual line"}
+                    {item.unit_of_measure ? ` - ${item.unit_of_measure}` : ""}
+                  </div>
+                </TableCell>
+                <TableCell>{item.hsn_sac_code || "-"}</TableCell>
                 <TableCell className="text-right">{item.quantity}</TableCell>
+                <TableCell className="text-right">{money(item.unit_price)}</TableCell>
+                <TableCell className="text-right">{money(item.taxableValue)}</TableCell>
                 <TableCell className="text-right">
-                  {item.unit_price.toFixed(2)}
+                  {money(item.taxAmount)}
+                  <div className="text-xs text-muted-foreground">
+                    {item.taxRate.toFixed(2)}%
+                  </div>
                 </TableCell>
                 <TableCell className="text-right font-medium">
-                  {(item.quantity * item.unit_price).toFixed(2)}
+                  {money(item.lineTotal)}
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
 
-        {/* DISCOUNT */}
-        <div className="rounded-lg border p-6 space-y-6">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            Discount
-          </h3>
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+          <div className="rounded-lg border border-[#e0e4eb] p-4 space-y-4">
+            <h3 className="text-sm font-medium text-[#636973]">Discount</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Discount Type</Label>
+                <Select
+                  value={discountType}
+                  onValueChange={(value) => setDiscountType(value as typeof discountType)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">None</SelectItem>
+                    <SelectItem value="FLAT">Flat</SelectItem>
+                    <SelectItem value="PERCENT">Percent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-2">
-              <Label>Discount Type</Label>
-              <Select
-                value={discountType}
-                onValueChange={(v) => setDiscountType(v as any)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="NONE">None</SelectItem>
-                  <SelectItem value="FLAT">Flat</SelectItem>
-                  <SelectItem value="PERCENT">Percent</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label>Discount Value</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={discountValue}
+                  onChange={(event) => setDiscountValue(Number(event.target.value))}
+                  disabled={discountType === "NONE"}
+                  placeholder={discountType === "PERCENT" ? "Percentage %" : "Amount"}
+                />
+              </div>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label>Discount Value</Label>
-              <Input
-                type="number"
-                value={discountValue}
-                onChange={(e) => setDiscountValue(+e.target.value)}
-                disabled={discountType === "NONE"}
-                placeholder={
-                  discountType === "PERCENT" ? "Percentage %" : "Amount"
-                }
-              />
+          <div className="space-y-3 rounded-lg border border-[#e0e4eb] p-4 text-sm">
+            <TotalRow label="Subtotal" value={money(subtotal)} />
+            <TotalRow label="Tax" value={money(tax)} />
+            <TotalRow label="Discount" value={`- ${money(discountAmount)}`} />
+            <div className="flex justify-between border-t pt-3 text-base font-semibold">
+              <span>Total</span>
+              <span>{money(total)}</span>
             </div>
           </div>
         </div>
 
-        {/* TOTALS (LIVE PREVIEW) */}
-        <div className="ml-auto max-w-sm space-y-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span>{subtotal.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Tax (18%)</span>
-            <span>{tax.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Discount</span>
-            <span>- {discountAmount.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-base font-semibold border-t pt-3">
-            <span>Total</span>
-            <span>{total.toFixed(2)}</span>
-          </div>
-        </div>
-
-        {/* ACTIONS */}
-        <div className="flex justify-end gap-3 pt-4">
+        <div className="flex justify-end gap-3 pt-2">
           <Button variant="outline" onClick={() => router.push("/orders")}>
             Cancel
           </Button>
           <Button onClick={handleCreateInvoice} disabled={saving}>
+            <ReceiptText className="size-4" />
             {saving ? "Creating..." : "Create Invoice"}
           </Button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function PreviewMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs font-medium uppercase tracking-normal text-[#6b707d]">
+        {label}
+      </div>
+      <div className="mt-1 truncate text-sm font-medium text-[#12141a]">{value}</div>
+    </div>
+  )
+}
+
+function TotalRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-[#6b707d]">{label}</span>
+      <span>{value}</span>
     </div>
   )
 }

@@ -38,7 +38,7 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "/",
+      url: "/dashboard",
       icon: LayoutDashboard,
       items: [],
     },
@@ -87,11 +87,27 @@ const data = {
       icon: Settings2,
       items: [
         {
-          title: "Organization",
+          title: "Business profile",
           url: "/settings",
         },
         {
-          title: "Profile",
+          title: "Tax profile",
+          url: "/settings/tax-profile",
+        },
+        {
+          title: "Invoice defaults",
+          url: "/settings/invoice-defaults",
+        },
+        {
+          title: "Feature flags",
+          url: "/settings/feature-flags",
+        },
+        {
+          title: "Portal",
+          url: "/settings/portal",
+        },
+        {
+          title: "Profile Settings",
           url: "/settings/profile",
         },
       ],
@@ -110,7 +126,7 @@ const data = {
     },
     {
       name: "Reports",
-      url: "/",
+      url: "/dashboard",
       icon: BarChart3,
     },
   ],
@@ -139,9 +155,16 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const navMain = data.navMain.map((item) => ({
     ...item,
     isActive:
-      item.url === "/"
-        ? pathname === "/"
+      item.url === "/dashboard"
+        ? pathname === "/dashboard"
         : pathname === item.url || pathname.startsWith(`${item.url}/`),
+    items: item.items?.map((subItem) => ({
+      ...subItem,
+      isActive:
+        subItem.url === "/settings"
+          ? pathname === "/settings"
+          : pathname === subItem.url || pathname.startsWith(`${subItem.url}/`),
+    })),
   }))
   const displayName =
     user?.display_name || user?.full_name || user?.email || data.user.name

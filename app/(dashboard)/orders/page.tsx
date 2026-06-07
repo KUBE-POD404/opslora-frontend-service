@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
-import { Filter, Loader2 } from "lucide-react"
+import { Check, Eye, FileText, Filter, Loader2, PackageSearch, Pencil, Plus, X } from "lucide-react"
 
 import {
     AlertDialog,
@@ -64,9 +64,23 @@ type Customer = {
 }
 
 type OrderItem = {
+    product_id?: number | null
+    sku?: string | null
     product_name: string
     quantity: number
     unit_price: number
+    tax_rate?: number | null
+    unit_of_measure?: string | null
+}
+
+type Product = {
+    id: number
+    name: string
+    sku: string
+    unit_of_measure: string
+    sale_price: number | string
+    tax_rate: number | string
+    is_active: boolean
 }
 
 type Order = {
@@ -83,11 +97,22 @@ type Invoice = {
     order_id: number
 }
 
+function money(value: number) {
+    return `Rs ${Number(value || 0).toFixed(2)}`
+}
+
+function statusClass(status: string) {
+    if (status === "CONFIRMED") return "border-emerald-200 bg-emerald-50 text-emerald-700"
+    if (status === "CREATED") return "border-amber-200 bg-amber-50 text-amber-700"
+    return "border-red-200 bg-red-50 text-red-700"
+}
+
 /* ================= PAGE ================= */
 
 export default function OrdersPage() {
     const [orders, setOrders] = useState<Order[]>([])
     const [customers, setCustomers] = useState<Customer[]>([])
+    const [products, setProducts] = useState<Product[]>([])
     const [loading, setLoading] = useState(true)
 
     /* pagination */
@@ -105,7 +130,7 @@ export default function OrdersPage() {
     /* form */
     const [customerId, setCustomerId] = useState("")
     const [items, setItems] = useState<OrderItem[]>([
-        { product_name: "", quantity: 1, unit_price: 0 }
+        { product_id: null, product_name: "", quantity: 1, unit_price: 0 }
     ])
 
 
@@ -115,9 +140,12 @@ export default function OrdersPage() {
     const [customerFilter, setCustomerFilter] = useState<string | null>(null)
 
     const router = useRouter()
+    const createdCount = orders.filter(order => order.status === "CREATED").length
+    const confirmedCount = orders.filter(order => order.status === "CONFIRMED").length
+    const uninvoicedCount = orders.filter(order => order.status === "CONFIRMED" && !invoiceMap[order.id]).length
 
     /* ================= LOAD DATA ================= */
-    async function loadOrders(currentPage = page) {
+    const loadOrders = useCallback(async function loadOrders(currentPage = page) {
         try {
             setLoading(true)
 
@@ -134,14 +162,16 @@ export default function OrdersPage() {
                 params.append("customer_id", customerFilter)
             }
 
-            const [ordersData, customersData, invoicesData] = await Promise.all([
+            const [ordersData, customersData, invoicesData, productsData] = await Promise.all([
                 apiFetch<Order[]>(`/orders/?${params.toString()}`),
                 apiFetch<Customer[]>("/customers/"),
-                apiFetch<Invoice[]>(`/invoices/`)
+                apiFetch<Invoice[]>(`/invoices/`),
+                apiFetch<Product[]>("/inventory/products?limit=100"),
             ])
 
             setOrders(ordersData)
             setCustomers(customersData)
+            setProducts(productsData.filter(product => product.is_active))
             const map: Record<number, boolean> = {}
 
             invoicesData.forEach(inv => {
@@ -154,12 +184,12 @@ export default function OrdersPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [customerFilter, page, statusFilter])
 
 
     useEffect(() => {
         loadOrders()
-    }, [page, statusFilter, customerFilter])
+    }, [loadOrders])
 
 
     /* ================= VIEW ================= */
@@ -177,7 +207,7 @@ export default function OrdersPage() {
     function addItem() {
         setItems(prev => [
             ...prev,
-            { product_name: "", quantity: 1, unit_price: 0 },
+            { product_id: null, product_name: "", quantity: 1, unit_price: 0 },
         ])
     }
 
@@ -200,6 +230,46 @@ export default function OrdersPage() {
         )
     }
 
+    function selectProduct(index: number, value: string) {
+        if (value === "MANUAL") {
+            setItems(prev =>
+                prev.map((item, i) =>
+                    i === index
+                        ? {
+                            ...item,
+                            product_id: null,
+                            sku: null,
+                            product_name: "",
+                            unit_price: 0,
+                            tax_rate: null,
+                            unit_of_measure: null,
+                        }
+                        : item
+                )
+            )
+            return
+        }
+
+        const product = products.find(p => p.id === Number(value))
+        if (!product) return
+
+        setItems(prev =>
+            prev.map((item, i) =>
+                i === index
+                    ? {
+                        ...item,
+                        product_id: product.id,
+                        sku: product.sku,
+                        product_name: product.name,
+                        unit_price: Number(product.sale_price),
+                        tax_rate: Number(product.tax_rate || 0),
+                        unit_of_measure: product.unit_of_measure,
+                    }
+                    : item
+            )
+        )
+    }
+
 
 
     /* ================= EDIT ================= */
@@ -210,9 +280,13 @@ export default function OrdersPage() {
 
         setItems(
             order.items.map(i => ({
+                product_id: i.product_id ?? null,
+                sku: i.sku ?? null,
                 product_name: i.product_name,
                 quantity: i.quantity,
                 unit_price: i.unit_price,
+                tax_rate: i.tax_rate ?? null,
+                unit_of_measure: i.unit_of_measure ?? null,
             }))
         )
 
@@ -234,11 +308,29 @@ export default function OrdersPage() {
         }
 
         for (const item of items) {
-            if (!item.product_name || item.quantity <= 0 || item.unit_price <= 0) {
-                toast.error("Each item must have valid product, quantity and price")
+            if (item.quantity <= 0) {
+                toast.error("Each item must have a valid quantity")
+                return
+            }
+
+            if (!item.product_id && (!item.product_name || item.unit_price <= 0)) {
+                toast.error("Select an inventory product or enter a valid manual line")
                 return
             }
         }
+
+        const orderItems = items.map(item =>
+            item.product_id
+                ? {
+                    product_id: item.product_id,
+                    quantity: item.quantity,
+                }
+                : {
+                    product_name: item.product_name,
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                }
+        )
 
 
         try {
@@ -248,7 +340,7 @@ export default function OrdersPage() {
                 // UPDATE ORDER
                 const updated = await apiFetch<Order>(`/orders/${editingOrder.id}`, {
                     method: "PUT",
-                    body: JSON.stringify({ items }),
+                    body: JSON.stringify({ items: orderItems }),
                 })
 
                 setOrders(prev =>
@@ -262,7 +354,7 @@ export default function OrdersPage() {
                     method: "POST",
                     body: JSON.stringify({
                         customer_id: Number(customerId),
-                        items,
+                        items: orderItems,
                     }),
                 })
 
@@ -274,7 +366,7 @@ export default function OrdersPage() {
             setOpen(false)
             setEditingOrder(null)
             setCustomerId("")
-            setItems([{ product_name: "", quantity: 1, unit_price: 0 }])
+            setItems([{ product_id: null, product_name: "", quantity: 1, unit_price: 0 }])
         } catch (err: any) {
             toast.error(err.message)
         } finally {
@@ -311,23 +403,40 @@ export default function OrdersPage() {
     return (
         <div className="space-y-6">
             {/* HEADER */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-semibold">Orders</h1>
-                    <p className="text-muted-foreground">Manage orders</p>
+                    <h1 className="text-2xl font-semibold text-[#12141a]">Orders</h1>
+                    <p className="text-sm text-[#6b707d]">Create, confirm, and invoice customer orders.</p>
                 </div>
 
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setFilterOpen(true)}>
-                        <Filter className="mr-2 h-4 w-4" />
+                    <Button variant="outline" className="h-9 rounded-md" onClick={() => setFilterOpen(true)}>
+                        <Filter className="h-4 w-4" />
                         Filters
                     </Button>
-                    <Button onClick={() => setOpen(true)}>Create Order</Button>
+                    <Button
+                        className="h-9 rounded-md"
+                        onClick={() => {
+                            setEditingOrder(null)
+                            setCustomerId("")
+                            setItems([{ product_id: null, product_name: "", quantity: 1, unit_price: 0 }])
+                            setOpen(true)
+                        }}
+                    >
+                        <Plus className="h-4 w-4" />
+                        Create Order
+                    </Button>
                 </div>
             </div>
 
+            <div className="grid gap-3 md:grid-cols-3">
+                <Metric label="Draft orders" value={createdCount} helper="Need confirmation" />
+                <Metric label="Confirmed" value={confirmedCount} helper="Ready for invoicing" />
+                <Metric label="To invoice" value={uninvoicedCount} helper="No invoice yet" />
+            </div>
+
             {/* TABLE */}
-            <div className="rounded-md border">
+            <div className="rounded-lg border border-[#e0e4eb] bg-white">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -349,27 +458,22 @@ export default function OrdersPage() {
                         {!loading &&
                             orders.map(order => (
                                 <TableRow key={order.id}>
-                                    <TableCell>{order.id}</TableCell>
-                                    <TableCell>  {customers.find(c => c.id === order.customer_id)?.name ?? "Unknown"}</TableCell>
-                                    <TableCell>{(order.total ?? 0).toFixed(2)}</TableCell>
-                                    <TableCell><span
-                                        className={`rounded-full px-2 py-1 text-xs font-medium
-        ${order.status === "CREATED"
-                                                ? "bg-yellow-100 text-yellow-800"
-                                                : order.status === "CONFIRMED"
-                                                    ? "bg-green-100 text-green-800"
-                                                    : "bg-red-100 text-red-800"
-                                            }`}
-                                    >
-                                        {order.status}
-                                    </span>
+                                    <TableCell className="font-medium text-[#12141a]">#{order.id}</TableCell>
+                                    <TableCell>{customers.find(c => c.id === order.customer_id)?.name ?? "Unknown"}</TableCell>
+                                    <TableCell>{money(order.total)}</TableCell>
+                                    <TableCell>
+                                        <span className={`rounded-full border px-2 py-1 text-xs font-medium ${statusClass(order.status)}`}>
+                                            {order.status}
+                                        </span>
                                     </TableCell>
-                                    <TableCell className="text-right space-x-2">
+                                    <TableCell className="text-right">
+                                        <div className="flex flex-wrap justify-end gap-2">
                                         <Button
                                             size="sm"
                                             variant="outline"
                                             onClick={() => handleViewOrder(order)}
                                         >
+                                            <Eye className="size-3.5" />
                                             View
                                         </Button>
 
@@ -380,6 +484,7 @@ export default function OrdersPage() {
                                                     variant="outline"
                                                     onClick={() => openEditOrder(order)}
                                                 >
+                                                    <Pencil className="size-3.5" />
                                                     Edit
                                                 </Button>
 
@@ -387,6 +492,7 @@ export default function OrdersPage() {
                                                     size="sm"
                                                     onClick={() => confirmOrder(order.id)}
                                                 >
+                                                    <Check className="size-3.5" />
                                                     Confirm
                                                 </Button>
                                                 <Button
@@ -394,7 +500,8 @@ export default function OrdersPage() {
                                                     variant="destructive"
                                                     onClick={() => setCancelOrderTarget(order)}
                                                 >
-                                                    ✕
+                                                    <X className="size-3.5" />
+                                                    Cancel
                                                 </Button>
 
                                             </>
@@ -407,13 +514,22 @@ export default function OrdersPage() {
                                                     router.push(`/orders/${order.id}/create-invoice`)
                                                 }
                                             >
+                                                <FileText className="size-3.5" />
                                                 Create Invoice
                                             </Button>
                                         )}
-
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}
+                        {!loading && orders.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={5} className="py-12 text-center">
+                                    <div className="font-medium text-[#12141a]">No orders found</div>
+                                    <div className="text-sm text-[#6b707d]">Create an order once a customer and inventory item are ready.</div>
+                                </TableCell>
+                            </TableRow>
+                        )}
                     </TableBody>
                 </Table>
             </div>
@@ -490,44 +606,83 @@ export default function OrdersPage() {
                         </div>
 
                         {items.map((item, index) => (
-                            <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                                <Input
-                                    className="col-span-5"
-                                    placeholder="Product name"
-                                    value={item.product_name}
-                                    onChange={e =>
-                                        updateItem(index, "product_name", e.target.value)
-                                    }
-                                />
+                            <div key={index} className="grid grid-cols-12 gap-2 items-end rounded-md border p-3">
+                                <div className="col-span-12 md:col-span-5">
+                                    <Label className="mb-2 block text-xs text-muted-foreground">Product</Label>
+                                    <Select
+                                        value={item.product_id ? String(item.product_id) : "MANUAL"}
+                                        onValueChange={value => selectProduct(index, value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select product" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="MANUAL">Manual line</SelectItem>
+                                            {products.map(product => (
+                                                <SelectItem key={product.id} value={String(product.id)}>
+                                                    {product.name} - {product.sku}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
 
-                                <Input
-                                    type="number"
-                                    className="col-span-3"
-                                    placeholder="Qty"
-                                    value={item.quantity}
-                                    onChange={e =>
-                                        updateItem(index, "quantity", +e.target.value)
-                                    }
-                                />
+                                <div className="col-span-6 md:col-span-2">
+                                    <Label className="mb-2 block text-xs text-muted-foreground">Qty</Label>
+                                    <Input
+                                        type="number"
+                                        min="1"
+                                        placeholder="Qty"
+                                        value={item.quantity}
+                                        onChange={e =>
+                                            updateItem(index, "quantity", +e.target.value)
+                                        }
+                                    />
+                                </div>
 
-                                <Input
-                                    type="number"
-                                    className="col-span-3"
-                                    placeholder="Unit price"
-                                    value={item.unit_price}
-                                    onChange={e =>
-                                        updateItem(index, "unit_price", +e.target.value)
-                                    }
-                                />
+                                <div className="col-span-6 md:col-span-2">
+                                    <Label className="mb-2 block text-xs text-muted-foreground">Unit price</Label>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="Unit price"
+                                        value={item.unit_price}
+                                        disabled={!!item.product_id}
+                                        onChange={e =>
+                                            updateItem(index, "unit_price", +e.target.value)
+                                        }
+                                    />
+                                </div>
+
+                                <div className="col-span-10 md:col-span-2">
+                                    <Label className="mb-2 block text-xs text-muted-foreground">
+                                        {item.product_id ? "Snapshot" : "Name"}
+                                    </Label>
+                                    {item.product_id ? (
+                                        <div className="flex h-9 items-center gap-2 rounded-md border px-3 text-sm">
+                                            <PackageSearch className="size-4 text-muted-foreground" />
+                                            <span className="truncate">{item.sku || item.product_name}</span>
+                                        </div>
+                                    ) : (
+                                        <Input
+                                            placeholder="Product name"
+                                            value={item.product_name}
+                                            onChange={e =>
+                                                updateItem(index, "product_name", e.target.value)
+                                            }
+                                        />
+                                    )}
+                                </div>
 
                                 <Button
                                     size="icon"
                                     variant="destructive"
-                                    className="col-span-1"
+                                    className="col-span-2 md:col-span-1"
                                     onClick={() => removeItem(index)}
                                     disabled={items.length === 1}
                                 >
-                                    ✕
+                                    X
                                 </Button>
                             </div>
                         ))}
@@ -664,6 +819,16 @@ export default function OrdersPage() {
                 </AlertDialogContent>
             </AlertDialog>
 
+        </div>
+    )
+}
+
+function Metric({ label, value, helper }: { label: string; value: number; helper: string }) {
+    return (
+        <div className="rounded-lg border border-[#e0e4eb] bg-white p-4">
+            <div className="text-sm text-[#6b707d]">{label}</div>
+            <div className="mt-1 text-2xl font-semibold text-[#12141a]">{value}</div>
+            <div className="text-sm text-[#6b707d]">{helper}</div>
         </div>
     )
 }
