@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
-import { Loader2, Filter } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 import {
     Table,
@@ -41,7 +41,9 @@ import { useRouter } from "next/navigation"
 
 type Invoice = {
     id: number
+    invoice_number?: string | null
     order_id: number
+    customer_name?: string | null
     subtotal: number
     tax: number
     total: number
@@ -73,7 +75,7 @@ export default function InvoicesPage() {
 
     /* ================= LOAD DATA ================= */
 
-    async function loadInvoices(currentPage = page) {
+    const loadInvoices = useCallback(async function loadInvoices(currentPage = page) {
         try {
             setLoading(true)
 
@@ -93,11 +95,11 @@ export default function InvoicesPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [page])
 
     useEffect(() => {
         loadInvoices()
-    }, [page])
+    }, [loadInvoices])
 
     /* ================= CANCEL ================= */
 
@@ -170,8 +172,9 @@ export default function InvoicesPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Invoice ID</TableHead>
-                            <TableHead>Order ID</TableHead>
+                            <TableHead>Invoice</TableHead>
+                            <TableHead>Order</TableHead>
+                            <TableHead>Customer</TableHead>
                             <TableHead>Total</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Due Date</TableHead>
@@ -182,7 +185,7 @@ export default function InvoicesPage() {
                     <TableBody>
                         {loading && (
                             <TableRow>
-                                <TableCell colSpan={6} className="py-10 text-center">
+                                <TableCell colSpan={7} className="py-10 text-center">
                                     <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                                 </TableCell>
                             </TableRow>
@@ -191,8 +194,9 @@ export default function InvoicesPage() {
                         {!loading &&
                             invoices.map(inv => (
                                 <TableRow key={inv.id}>
-                                    <TableCell>{inv.id}</TableCell>
+                                    <TableCell className="font-medium">{inv.invoice_number || `#${inv.id}`}</TableCell>
                                     <TableCell>#{inv.order_id}</TableCell>
+                                    <TableCell>{inv.customer_name || "—"}</TableCell>
                                     <TableCell>{inv.total.toFixed(2)}</TableCell>
                                     <TableCell>
                                         <span
