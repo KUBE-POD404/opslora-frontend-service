@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { PageTransition } from "@/components/page-transition"
 import { SiteHeader } from "@/components/site-header"
 import { Spinner } from "@/components/ui/spinner"
 
@@ -55,7 +56,7 @@ export default function DashboardLayout({
 
           <SidebarInset>
             <div className="flex flex-1 flex-col gap-4 p-4">
-              {children}
+              <PageTransition>{children}</PageTransition>
             </div>
           </SidebarInset>
 
