@@ -39,10 +39,14 @@ export function NavMain({
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) => (
+        {items.map((item) => {
+          const hasActiveChild = item.items?.some((subItem) => subItem.isActive)
+          const showParentActive = Boolean(item.isActive && !hasActiveChild)
+
+          return (
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip={item.title}>
+              <SidebarMenuButton asChild tooltip={item.title} isActive={showParentActive}>
                 <Link href={item.url}>
                   <item.icon />
                   <span>{item.title}</span>
@@ -73,7 +77,8 @@ export function NavMain({
               ) : null}
             </SidebarMenuItem>
           </Collapsible>
-        ))}
+          )
+        })}
       </SidebarMenu>
     </SidebarGroup>
   )
