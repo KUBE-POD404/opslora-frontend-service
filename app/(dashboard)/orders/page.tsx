@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { Check, Eye, FileText, Filter, Loader2, PackageSearch, Pencil, Plus, X } from "lucide-react"
+import { Check, Eye, FileText, Loader2, PackageSearch, Pencil, Plus, Search, X } from "lucide-react"
 
 import {
     AlertDialog,
@@ -135,14 +135,30 @@ export default function OrdersPage() {
 
 
     /* filters */
-    const [filterOpen, setFilterOpen] = useState(false)
     const [statusFilter, setStatusFilter] = useState<string | null>(null)
     const [customerFilter, setCustomerFilter] = useState<string | null>(null)
+    const [query, setQuery] = useState("")
 
     const router = useRouter()
     const createdCount = orders.filter(order => order.status === "CREATED").length
     const confirmedCount = orders.filter(order => order.status === "CONFIRMED").length
     const uninvoicedCount = orders.filter(order => order.status === "CONFIRMED" && !invoiceMap[order.id]).length
+    const activeFilterCount = [statusFilter, customerFilter, query.trim()].filter(Boolean).length
+    const filteredOrders = useMemo(() => {
+        const needle = query.trim().toLowerCase()
+
+        return orders.filter(order => {
+            const customerName = customers.find(c => c.id === order.customer_id)?.name ?? ""
+            if (!needle) return true
+
+            return [
+                String(order.id),
+                customerName,
+                order.status,
+                String(order.total),
+            ].some(value => value.toLowerCase().includes(needle))
+        })
+    }, [customers, orders, query])
 
     /* ================= LOAD DATA ================= */
     const loadOrders = useCallback(async function loadOrders(currentPage = page) {
@@ -410,10 +426,6 @@ export default function OrdersPage() {
                 </div>
 
                 <div className="flex gap-2">
-                    <Button variant="outline" className="h-9 rounded-md" onClick={() => setFilterOpen(true)}>
-                        <Filter className="h-4 w-4" />
-                        Filters
-                    </Button>
                     <Button
                         className="h-9 rounded-md"
                         onClick={() => {
@@ -433,6 +445,103 @@ export default function OrdersPage() {
                 <Metric label="Draft orders" value={createdCount} helper="Need confirmation" />
                 <Metric label="Confirmed" value={confirmedCount} helper="Ready for invoicing" />
                 <Metric label="To invoice" value={uninvoicedCount} helper="No invoice yet" />
+            </div>
+
+            <div className="rounded-lg border border-white/10 bg-[#141922] p-3 shadow-[0_18px_60px_rgba(0,0,0,0.18)]">
+                <div className="grid gap-3 xl:grid-cols-[minmax(240px,1fr)_180px_240px_auto]">
+                    <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#7d8797]" />
+                        <Input
+                            value={query}
+                            onChange={(event) => setQuery(event.target.value)}
+                            placeholder="Search order, customer, status, amount"
+                            className="h-10 rounded-md border-white/10 bg-[#0c1017] pl-9 text-[#e8edf4] placeholder:text-[#697386]"
+                        />
+                    </div>
+
+                    <Select
+                        value={statusFilter ?? "ALL"}
+                        onValueChange={value => {
+                            setPage(1)
+                            setStatusFilter(value === "ALL" ? null : value)
+                        }}
+                    >
+                        <SelectTrigger className="h-10 w-full border-white/10 bg-[#0c1017] text-[#e8edf4]">
+                            <SelectValue placeholder="All statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">All statuses</SelectItem>
+                            <SelectItem value="CREATED">Draft</SelectItem>
+                            <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                            <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <Select
+                        value={customerFilter ?? "ALL"}
+                        onValueChange={value => {
+                            setPage(1)
+                            setCustomerFilter(value === "ALL" ? null : value)
+                        }}
+                    >
+                        <SelectTrigger className="h-10 w-full border-white/10 bg-[#0c1017] text-[#e8edf4]">
+                            <SelectValue placeholder="All customers" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">All customers</SelectItem>
+                            {customers.map(customer => (
+                                <SelectItem key={customer.id} value={String(customer.id)}>
+                                    {customer.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <Button
+                        variant="outline"
+                        className="h-10 border-white/10 bg-white/[0.03] text-[#d9e2ee] hover:bg-white/[0.07]"
+                        disabled={activeFilterCount === 0}
+                        onClick={() => {
+                            setStatusFilter(null)
+                            setCustomerFilter(null)
+                            setQuery("")
+                            setPage(1)
+                        }}
+                    >
+                        <X className="size-4" />
+                        Clear
+                    </Button>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                    {[
+                        ["ALL", "All"],
+                        ["CREATED", "Draft"],
+                        ["CONFIRMED", "Confirmed"],
+                        ["CANCELLED", "Cancelled"],
+                    ].map(([value, label]) => {
+                        const active = (statusFilter ?? "ALL") === value
+                        return (
+                            <button
+                                key={value}
+                                type="button"
+                                onClick={() => {
+                                    setPage(1)
+                                    setStatusFilter(value === "ALL" ? null : value)
+                                }}
+                                className={`rounded-full border px-3 py-1.5 transition ${active
+                                    ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-100"
+                                    : "border-white/10 bg-white/[0.03] text-[#8790a0] hover:text-[#d9e2ee]"
+                                    }`}
+                            >
+                                {label}
+                            </button>
+                        )
+                    })}
+                    <span className="ml-auto text-[#7d8797]">
+                        Showing {filteredOrders.length} of {orders.length}
+                    </span>
+                </div>
             </div>
 
             {/* TABLE */}
@@ -456,7 +565,7 @@ export default function OrdersPage() {
                             </TableRow>
                         )}
                         {!loading &&
-                            orders.map(order => (
+                            filteredOrders.map(order => (
                                 <TableRow key={order.id}>
                                     <TableCell className="font-medium text-[#12141a]">#{order.id}</TableCell>
                                     <TableCell>{customers.find(c => c.id === order.customer_id)?.name ?? "Unknown"}</TableCell>
@@ -522,7 +631,7 @@ export default function OrdersPage() {
                                     </TableCell>
                                 </TableRow>
                             ))}
-                        {!loading && orders.length === 0 && (
+                        {!loading && filteredOrders.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={5} className="py-12 text-center">
                                     <div className="font-medium text-[#12141a]">No orders found</div>
@@ -726,66 +835,6 @@ export default function OrdersPage() {
                             ))}
                         </TableBody>
                     </Table>
-                </DialogContent>
-            </Dialog>
-            {/* FILTER DIALOG */}
-            <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Filters</DialogTitle>
-                    </DialogHeader>
-
-                    <Select
-                        value={statusFilter ?? "ALL"}
-                        onValueChange={v => setStatusFilter(v === "ALL" ? null : v)}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="All statuses" />
-                        </SelectTrigger>
-
-                        <SelectContent>
-                            <SelectItem value="ALL">All</SelectItem>
-                            <SelectItem value="CREATED">CREATED</SelectItem>
-                            <SelectItem value="CONFIRMED">CONFIRMED</SelectItem>
-                            <SelectItem value="CANCELLED">CANCELLED</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-
-
-                    <Select
-                        value={customerFilter ?? "ALL"}
-                        onValueChange={v => setCustomerFilter(v === "ALL" ? null : v)}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="All customers" />
-                        </SelectTrigger>
-
-                        <SelectContent>
-                            <SelectItem value="ALL">All</SelectItem>
-
-                            {customers.map(c => (
-                                <SelectItem key={c.id} value={String(c.id)}>
-                                    {c.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
-
-
-                    <Button
-                        variant="outline"
-                        onClick={() => {
-                            setStatusFilter(null)
-                            setCustomerFilter(null)
-                            setPage(1)
-                            setFilterOpen(false)
-                        }}
-                    >
-                        Clear Filters
-                    </Button>
-
                 </DialogContent>
             </Dialog>
             {/* CANCEL ORDER */}

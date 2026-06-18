@@ -50,6 +50,16 @@ type Order = {
   total: number
 }
 
+type InvoiceTemplate = {
+  key: string
+  name: string
+  description: string
+  version: string
+  supports_logo: boolean
+  supports_tax_summary: boolean
+  supports_bank_details: boolean
+}
+
 function round(value: number) {
   return Math.round(value * 100) / 100
 }
@@ -68,6 +78,8 @@ export default function CreateInvoicePage() {
   const [discountType, setDiscountType] =
     useState<"NONE" | "FLAT" | "PERCENT">("NONE")
   const [discountValue, setDiscountValue] = useState(0)
+  const [templates, setTemplates] = useState<InvoiceTemplate[]>([])
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState("opslora_default")
   const [saving, setSaving] = useState(false)
 
   const linePreview = useMemo(() => {
@@ -115,10 +127,16 @@ export default function CreateInvoicePage() {
         const orderData = await apiFetch<Order>(`/orders/${id}`)
         setOrder(orderData)
 
-        const customerData = await apiFetch<{ id: number; name: string }>(
-          `/customers/${orderData.customer_id}`
-        )
+        const [customerData, templateData] = await Promise.all([
+          apiFetch<{ id: number; name: string }>(`/customers/${orderData.customer_id}`),
+          apiFetch<InvoiceTemplate[]>("/invoices/templates"),
+        ])
         setCustomerName(customerData.name)
+        setTemplates(templateData)
+
+        if (templateData[0]?.key) {
+          setSelectedTemplateKey(templateData[0].key)
+        }
       } catch (err: any) {
         toast.error(err.message)
         router.push("/orders")
@@ -141,6 +159,7 @@ export default function CreateInvoicePage() {
         body: JSON.stringify({
           discount_type: discountType === "NONE" ? null : discountType,
           discount_value: discountValue,
+          invoice_template_key: selectedTemplateKey,
         }),
       })
 
@@ -229,37 +248,71 @@ export default function CreateInvoicePage() {
         </Table>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-          <div className="rounded-lg border border-[#e0e4eb] p-4 space-y-4">
-            <h3 className="text-sm font-medium text-[#636973]">Discount</h3>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Discount Type</Label>
-                <Select
-                  value={discountType}
-                  onValueChange={(value) => setDiscountType(value as typeof discountType)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NONE">None</SelectItem>
-                    <SelectItem value="FLAT">Flat</SelectItem>
-                    <SelectItem value="PERCENT">Percent</SelectItem>
-                  </SelectContent>
-                </Select>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-[#e0e4eb] p-4 space-y-4">
+              <div>
+                <h3 className="text-sm font-medium text-[#636973]">Invoice template</h3>
+                <p className="mt-1 text-xs text-[#6b707d]">
+                  The selected template is snapshotted into this invoice.
+                </p>
               </div>
+              <Select value={selectedTemplateKey} onValueChange={setSelectedTemplateKey}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map((template) => (
+                    <SelectItem key={template.key} value={template.key}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {templates
+                .filter((template) => template.key === selectedTemplateKey)
+                .map((template) => (
+                  <div key={template.key} className="rounded-md border border-[#e0e4eb] bg-[#f8f9fa] p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="font-medium text-[#12141a]">{template.name}</div>
+                      <div className="text-xs text-[#6b707d]">v{template.version}</div>
+                    </div>
+                    <p className="mt-1 text-sm text-[#6b707d]">{template.description}</p>
+                  </div>
+                ))}
+            </div>
 
-              <div className="space-y-2">
-                <Label>Discount Value</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={discountValue}
-                  onChange={(event) => setDiscountValue(Number(event.target.value))}
-                  disabled={discountType === "NONE"}
-                  placeholder={discountType === "PERCENT" ? "Percentage %" : "Amount"}
-                />
+            <div className="rounded-lg border border-[#e0e4eb] p-4 space-y-4">
+              <h3 className="text-sm font-medium text-[#636973]">Discount</h3>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Discount Type</Label>
+                  <Select
+                    value={discountType}
+                    onValueChange={(value) => setDiscountType(value as typeof discountType)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NONE">None</SelectItem>
+                      <SelectItem value="FLAT">Flat</SelectItem>
+                      <SelectItem value="PERCENT">Percent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Discount Value</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={discountValue}
+                    onChange={(event) => setDiscountValue(Number(event.target.value))}
+                    disabled={discountType === "NONE"}
+                    placeholder={discountType === "PERCENT" ? "Percentage %" : "Amount"}
+                  />
+                </div>
               </div>
             </div>
           </div>

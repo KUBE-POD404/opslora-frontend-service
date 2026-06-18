@@ -114,11 +114,11 @@ const data = {
     },
   ],
   projects: [
-    {
-      name: "Invoice templates",
-      url: "/settings",
-      icon: FileText,
-    },
+      {
+        name: "Invoice templates",
+        url: "/settings/invoice-templates",
+        icon: FileText,
+      },
     {
       name: "Customer portal",
       url: "/settings",
