@@ -16,7 +16,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 
-FROM dhi.io/node:20-debian13
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 

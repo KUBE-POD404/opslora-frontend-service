@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+.playwright/
+test-results/
 
 # next.js
 /.next/
@@ -34,6 +36,9 @@ yarn-error.log*
 .env
 .env.local
 .env.production
+.env.development.local
+.env.test.local
+.env.production.local
 
 
 # vercel
@@ -45,3 +50,4 @@ next-env.d.ts
 
 .vscode
 .vscode/*
+.idea/

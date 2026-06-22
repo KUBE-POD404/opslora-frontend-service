@@ -13,6 +13,7 @@ concurrency:
 permissions:
   contents: read
   actions: read
+  id-token: write
   security-events: write
   packages: write
 
@@ -69,12 +70,20 @@ jobs:
 
           echo "should_build=$SHOULD_BUILD" >> "$GITHUB_OUTPUT"
 
-  docker-build:
+  frontend-checks:
     needs: gate
     if: ${{ needs.gate.outputs.should_build == 'true' }}
+    uses: ./.github/workflows/ci-check.yaml
+
+  docker-build:
+    needs:
+      - gate
+      - frontend-checks
+    if: ${{ needs.gate.outputs.should_build == 'true' && needs.frontend-checks.result == 'success' }}
     permissions:
       contents: read
       actions: read
+      id-token: write
       security-events: write
       packages: write
     uses: ./.github/workflows/ci-docker-build.yaml
@@ -89,11 +98,13 @@ jobs:
     uses: ./.github/workflows/cd-helm-test.yaml
     with:
       helm_repo: KUBE-POD404/opslora-helm-charts
-      helm_branch: refactor/opslora-helm
-      values_file: opslora-helm/apps/frontend/values-test.yaml
+      helm_branch: test/opslora-helm-test
+      values_file: opslora-helm/apps/frontend/values-azure-test.yaml
       image_tag: ${{ needs.docker-build.outputs.image_tag }}
+      image_repository: ${{ needs.docker-build.outputs.image_repository }}
       yaml_path: .image.tag
-      commit_message: "ci(frontend): update test image tag to ${{ needs.docker-build.outputs.image_tag }}"
+      repository_yaml_path: .image.repository
+      commit_message: "ci(frontend): update azure test ACR image to ${{ needs.docker-build.outputs.image_tag }}"
     secrets:
       HELM_REPO_TOKEN: ${{ secrets.HELM_REPO_TOKEN }}
 
@@ -104,13 +115,31 @@ jobs:
       needs:
         - gate
         - get-email
+        - frontend-checks
         - docker-build
-      if: ${{ always() && needs.gate.outputs.should_build == 'true' && needs.docker-build.result == 'failure' }}
+      if: ${{ always() && needs.gate.outputs.should_build == 'true' && (needs.frontend-checks.result == 'failure' || needs.docker-build.result == 'failure') }}
       steps:
         - name: Checkout code
           uses: actions/checkout@v4
 
+        - name: Send frontend check notification
+          if: ${{ needs.frontend-checks.result == 'failure' }}
+          uses: ./.github/actions/notification-action
+          with:
+            pipeline_name: ${{ github.workflow }}
+            repository_name: ${{ github.repository }}
+            failure_reason: ${{ needs.frontend-checks.outputs.failure_stage }}
+            author: ${{ needs.get-email.outputs.name || github.actor }}
+            smtp_username: ${{ secrets.SMTP_USERNAME }}
+            smtp_password: ${{ secrets.SMTP_PASSWORD }}
+            mail_from: ${{ secrets.MAIL_FROM }}
+            mail_to: ${{ needs.get-email.outputs.email }}
+            slack_webhook: ${{ secrets.SLACK_INCOMING_WEBHOOK }}
+            workflow_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            report_url: ${{ needs.frontend-checks.outputs.report_url }}
+
         - name: Send image pipeline notification
+          if: ${{ needs.docker-build.result == 'failure' }}
           uses: ./.github/actions/notification-action
           with:
             pipeline_name: ${{ github.workflow }}
@@ -120,7 +149,7 @@ jobs:
             smtp_username: ${{ secrets.SMTP_USERNAME }}
             smtp_password: ${{ secrets.SMTP_PASSWORD }}
             mail_from: ${{ secrets.MAIL_FROM }}
-            mail_to: ${{ needs.get-email.outputs.email || secrets.MAIL_TO }}
+            mail_to: ${{ needs.get-email.outputs.email }}
             slack_webhook: ${{ secrets.SLACK_INCOMING_WEBHOOK }}
             workflow_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             report_url: ${{ needs.docker-build.outputs.report_url }}

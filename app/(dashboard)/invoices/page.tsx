@@ -1,353 +1,451 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { CreditCard, Eye, Loader2, RotateCcw, Search, X } from "lucide-react"
 import { toast } from "sonner"
-import { Loader2, Filter } from "lucide-react"
 
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
-
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog"
-
+import { Input } from "@/components/ui/input"
 import {
-    Pagination,
-    PaginationContent,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
 } from "@/components/ui/pagination"
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { apiFetch } from "@/lib/api"
-import { useRouter } from "next/navigation"
-
-
-/* ================= TYPES ================= */
-
-
 
 type Invoice = {
-    id: number
-    order_id: number
-    subtotal: number
-    tax: number
-    total: number
-    status: string
-    due_date: string
-    created_at: string
+  id: number
+  invoice_number?: string | null
+  order_id: number
+  customer_name?: string | null
+  subtotal: number
+  tax: number
+  total: number
+  status: string
+  due_date: string
+  created_at: string
 }
 
-/* ================= PAGE ================= */
+const cancellableStatuses = ["UNPAID"]
+
+function money(value: number) {
+  return `Rs ${Number(value || 0).toFixed(2)}`
+}
+
+function formatDate(value: string) {
+  if (!value) return "-"
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) return value
+
+  return date.toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  })
+}
+
+function statusClass(status: string) {
+  if (status === "PAID") return "border-emerald-200 bg-emerald-50 text-emerald-700"
+  if (status === "PARTIALLY_PAID") return "border-blue-200 bg-blue-50 text-blue-700"
+  if (status === "UNPAID") return "border-amber-200 bg-amber-50 text-amber-700"
+  if (status === "REFUNDED") return "border-slate-200 bg-slate-50 text-slate-600"
+  if (status === "CANCELLED") return "border-red-200 bg-red-50 text-red-700"
+
+  return "border-slate-200 bg-slate-50 text-slate-600"
+}
 
 export default function InvoicesPage() {
-    const [invoices, setInvoices] = useState<Invoice[]>([])
-    const [loading, setLoading] = useState(true)
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [query, setQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState("ALL")
+  const [refundOpen, setRefundOpen] = useState(false)
+  const [refundTarget, setRefundTarget] = useState<Invoice | null>(null)
+  const [refundReason, setRefundReason] = useState("")
+  const [refunding, setRefunding] = useState(false)
+  const limit = 20
+  const router = useRouter()
 
-    /* pagination */
-    const [page, setPage] = useState(1)
-    const limit = 20
+  const loadInvoices = useCallback(async function loadInvoices(currentPage = page) {
+    try {
+      setLoading(true)
 
-    /* refund */
-    const [refundOpen, setRefundOpen] = useState(false)
-    const [refundTarget, setRefundTarget] = useState<Invoice | null>(null)
-    const [refundReason, setRefundReason] = useState("")
-    const [refunding, setRefunding] = useState(false)
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(limit),
+      })
 
-    const cancellableStatuses = ["UNPAID"]
-
-
-    const router = useRouter()
-
-    /* ================= LOAD DATA ================= */
-
-    async function loadInvoices(currentPage = page) {
-        try {
-            setLoading(true)
-
-            const params = new URLSearchParams({
-                page: String(currentPage),
-                limit: String(limit),
-            })
-
-            const invoiceData = await apiFetch<Invoice[]>(
-                `/invoices/?${params.toString()}`
-            )
-
-            setInvoices(invoiceData)
-
-        } catch (err: any) {
-            toast.error(err.message)
-        } finally {
-            setLoading(false)
-        }
+      const invoiceData = await apiFetch<Invoice[]>(`/invoices/?${params.toString()}`)
+      setInvoices(invoiceData)
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
+      setLoading(false)
     }
+  }, [page])
 
-    useEffect(() => {
-        loadInvoices()
-    }, [page])
+  useEffect(() => {
+    loadInvoices()
+  }, [loadInvoices])
 
-    /* ================= CANCEL ================= */
+  const filteredInvoices = useMemo(() => {
+    const needle = query.trim().toLowerCase()
 
-    async function cancelInvoice(id: number) {
-        try {
-            const updated = await apiFetch<Invoice>(`/invoices/${id}/cancel`, {
-                method: "POST",
-            })
+    return invoices.filter((invoice) => {
+      if (statusFilter !== "ALL" && invoice.status !== statusFilter) return false
+      if (!needle) return true
 
-            setInvoices(prev =>
-                prev.map(i => (i.id === updated.id ? updated : i))
-            )
+      return [
+        invoice.invoice_number,
+        invoice.customer_name,
+        invoice.order_id,
+        invoice.id,
+        invoice.status,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(needle))
+    })
+  }, [invoices, query, statusFilter])
 
-            toast.success("Invoice cancelled")
-        } catch (err: any) {
-            toast.error(err.message)
-        }
+  const metrics = useMemo(() => {
+    return {
+      open: invoices.filter((invoice) =>
+        ["UNPAID", "PARTIALLY_PAID"].includes(invoice.status)
+      ).length,
+      paid: invoices.filter((invoice) => invoice.status === "PAID").length,
+      amountDue: invoices
+        .filter((invoice) => ["UNPAID", "PARTIALLY_PAID"].includes(invoice.status))
+        .reduce((sum, invoice) => sum + Number(invoice.total || 0), 0),
     }
+  }, [invoices])
 
-    /* ================= REFUND ================= */
+  async function cancelInvoice(id: number) {
+    try {
+      const updated = await apiFetch<Invoice>(`/invoices/${id}/cancel`, {
+        method: "POST",
+      })
 
-    async function handleRefund() {
-        if (!refundTarget) return
+      setInvoices((current) =>
+        current.map((invoice) => (invoice.id === updated.id ? updated : invoice))
+      )
 
-        try {
-            setRefunding(true)
-
-            await apiFetch(`/payments/refund/${refundTarget.id}`, {
-                method: "POST",
-                body: JSON.stringify({
-                    amount: refundTarget.total,
-                    reason: refundReason || null,
-                }),
-            })
-
-            toast.success("Invoice refunded successfully")
-
-            setInvoices(prev =>
-                prev.map(i =>
-                    i.id === refundTarget.id
-                        ? { ...i, status: "REFUNDED" }
-                        : i
-                )
-            )
-
-            setRefundOpen(false)
-            setRefundTarget(null)
-            setRefundReason("")
-
-        } catch (err: any) {
-            toast.error(err.message)
-        } finally {
-            setRefunding(false)
-        }
+      toast.success("Invoice cancelled")
+    } catch (err: any) {
+      toast.error(err.message)
     }
-    /* ================= RENDER ================= */
+  }
 
-    return (
-        <div className="space-y-6">
-            {/* HEADER */}
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-semibold">Invoices</h1>
-                    <p className="text-muted-foreground">Manage invoices</p>
-                </div>
-            </div>
+  async function handleRefund() {
+    if (!refundTarget) return
 
-            {/* TABLE */}
-            <div className="rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Invoice ID</TableHead>
-                            <TableHead>Order ID</TableHead>
-                            <TableHead>Total</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Due Date</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
+    try {
+      setRefunding(true)
 
-                    <TableBody>
-                        {loading && (
-                            <TableRow>
-                                <TableCell colSpan={6} className="py-10 text-center">
-                                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
-                                </TableCell>
-                            </TableRow>
-                        )}
+      await apiFetch(`/payments/refund/${refundTarget.id}`, {
+        method: "POST",
+        body: JSON.stringify({
+          amount: refundTarget.total,
+          reason: refundReason || null,
+        }),
+      })
 
-                        {!loading &&
-                            invoices.map(inv => (
-                                <TableRow key={inv.id}>
-                                    <TableCell>{inv.id}</TableCell>
-                                    <TableCell>#{inv.order_id}</TableCell>
-                                    <TableCell>{inv.total.toFixed(2)}</TableCell>
-                                    <TableCell>
-                                        <span
-                                            className={`rounded-full px-2 py-1 text-xs font-medium
-        ${inv.status === "UNPAID" || inv.status === "PARTIALLY_PAID"
-                                                    ? "bg-yellow-100 text-yellow-800"
-                                                    : inv.status === "PAID"
-                                                        ? "bg-green-100 text-green-800"
-                                                        : inv.status === "CANCELLED" || inv.status === "REFUNDED"
-                                                            ? "bg-red-100 text-red-800"
-                                                            : "bg-gray-100 text-gray-800"
-                                                }`}
-                                        >
-                                            {inv.status}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell>{inv.due_date}</TableCell>
-                                    <TableCell className="text-right space-x-2">
-                                        {/* VIEW INVOICE */}
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => router.push(`/invoices/${inv.id}`)}
-                                        >
-                                            View
-                                        </Button>
-                                        {(inv.status === "UNPAID" || inv.status === "PARTIALLY_PAID") && (
-                                            <Button
-                                                size="sm"
-                                                variant="secondary"
-                                                onClick={() => router.push(`/invoices/${inv.id}/pay`)}
-                                            >
-                                                Add Payment
-                                            </Button>
-                                        )}
-                                        {inv.status === "PAID" && (
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => {
-                                                    setRefundTarget(inv)
-                                                    setRefundOpen(true)
-                                                }}
-                                            >
-                                                Refund
-                                            </Button>
-                                        )}
-                                        {/* CANCEL INVOICE */}
-                                        {cancellableStatuses.includes(inv.status) && (
-                                            <Button
-                                                size="sm"
-                                                variant="destructive"
-                                                onClick={() => cancelInvoice(inv.id)}
-                                            >
-                                                Cancel
-                                            </Button>
-                                        )}
-                                    </TableCell>
+      toast.success("Invoice refunded")
+      setInvoices((current) =>
+        current.map((invoice) =>
+          invoice.id === refundTarget.id
+            ? { ...invoice, status: "REFUNDED" }
+            : invoice
+        )
+      )
+      setRefundOpen(false)
+      setRefundTarget(null)
+      setRefundReason("")
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
+      setRefunding(false)
+    }
+  }
 
-                                </TableRow>
-                            ))}
-                    </TableBody>
-                </Table>
-            </div>
-
-            {/* PAGINATION */}
-            <Pagination>
-                <PaginationContent>
-                    <PaginationItem>
-                        <PaginationPrevious
-                            href="#"
-                            onClick={e => {
-                                e.preventDefault()
-                                if (page > 1) setPage(p => p - 1)
-                            }}
-                        />
-                    </PaginationItem>
-
-                    <PaginationItem>
-                        <PaginationLink href="#" isActive>
-                            {page}
-                        </PaginationLink>
-                    </PaginationItem>
-
-                    <PaginationItem>
-                        <PaginationNext
-                            href="#"
-                            onClick={e => {
-                                e.preventDefault()
-                                if (invoices.length === limit) {
-                                    setPage(p => p + 1)
-                                }
-                            }}
-                        />
-                    </PaginationItem>
-                </PaginationContent>
-            </Pagination>
-
-            <Dialog open={refundOpen} onOpenChange={setRefundOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Refund Invoice</DialogTitle>
-                    </DialogHeader>
-
-                    {refundTarget && (
-                        <div className="space-y-4">
-                            {/* INFO */}
-                            <div className="rounded-md border p-4 text-sm space-y-1">
-                                <p>
-                                    <strong>Invoice:</strong> #{refundTarget.id}
-                                </p>
-                                <p>
-                                    <strong>Refund Amount:</strong>{" "}
-                                    {refundTarget.total.toFixed(2)}
-                                </p>
-                            </div>
-
-                            {/* REASON */}
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Refund Reason</label>
-                                <textarea
-                                    className="w-full rounded-md border p-2 text-sm"
-                                    rows={3}
-                                    placeholder="Optional reason for refund"
-                                    value={refundReason}
-                                    onChange={(e) => setRefundReason(e.target.value)}
-                                />
-                            </div>
-
-                            {/* ACTIONS */}
-                            <div className="flex justify-end gap-2">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                        setRefundOpen(false)
-                                        setRefundTarget(null)
-                                        setRefundReason("")
-                                    }}
-                                >
-                                    Cancel
-                                </Button>
-
-                                <Button
-                                    variant="destructive"
-                                    disabled={refunding}
-                                    onClick={handleRefund}
-                                >
-                                    {refunding ? "Refunding..." : "Confirm Refund"}
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
-
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-[#12141a]">Invoices</h1>
+          <p className="text-sm text-[#6b707d]">
+            Track receivables, due dates, payments, and refunds.
+          </p>
         </div>
-    )
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <Metric label="Open invoices" value={metrics.open} helper="Need payment" />
+        <Metric label="Paid invoices" value={metrics.paid} helper="Collected" tone="ok" />
+        <Metric label="Amount due" value={money(metrics.amountDue)} helper="Open total" tone="warn" />
+      </div>
+
+      <div className="rounded-lg border border-[#e0e4eb] bg-white">
+        <div className="flex flex-col gap-3 border-b border-[#e0e4eb] p-3 md:flex-row md:items-center md:justify-between">
+          <div className="relative w-full md:max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#6b707d]" />
+            <Input
+              className="h-9 rounded-md pl-9"
+              placeholder="Search invoice, customer, or order"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-9 rounded-md md:w-[180px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All statuses</SelectItem>
+              <SelectItem value="UNPAID">Unpaid</SelectItem>
+              <SelectItem value="PARTIALLY_PAID">Partially paid</SelectItem>
+              <SelectItem value="PAID">Paid</SelectItem>
+              <SelectItem value="REFUNDED">Refunded</SelectItem>
+              <SelectItem value="CANCELLED">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Invoice</TableHead>
+              <TableHead>Order</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Total</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Due date</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+
+          <TableBody>
+            {loading && (
+              <TableRow>
+                <TableCell colSpan={7} className="py-10 text-center">
+                  <Loader2 className="mx-auto size-6 animate-spin text-[#6b707d]" />
+                </TableCell>
+              </TableRow>
+            )}
+
+            {!loading && filteredInvoices.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="py-12 text-center">
+                  <div className="font-medium text-[#12141a]">No invoices found</div>
+                  <div className="text-sm text-[#6b707d]">
+                    Confirm an order and create an invoice to start collecting payments.
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+
+            {!loading &&
+              filteredInvoices.map((invoice) => (
+                <TableRow key={invoice.id}>
+                  <TableCell>
+                    <div className="font-medium text-[#12141a]">
+                      {invoice.invoice_number || `#${invoice.id}`}
+                    </div>
+                    <div className="text-xs text-[#6b707d]">
+                      Created {formatDate(invoice.created_at)}
+                    </div>
+                  </TableCell>
+                  <TableCell>#{invoice.order_id}</TableCell>
+                  <TableCell>{invoice.customer_name || "-"}</TableCell>
+                  <TableCell>{money(invoice.total)}</TableCell>
+                  <TableCell>
+                    <Badge className={statusClass(invoice.status)}>{invoice.status}</Badge>
+                  </TableCell>
+                  <TableCell>{formatDate(invoice.due_date)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => router.push(`/invoices/${invoice.id}`)}
+                      >
+                        <Eye className="size-3.5" />
+                        View
+                      </Button>
+                      {(invoice.status === "UNPAID" ||
+                        invoice.status === "PARTIALLY_PAID") && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => router.push(`/invoices/${invoice.id}/pay`)}
+                        >
+                          <CreditCard className="size-3.5" />
+                          Add payment
+                        </Button>
+                      )}
+                      {invoice.status === "PAID" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setRefundTarget(invoice)
+                            setRefundOpen(true)
+                          }}
+                        >
+                          <RotateCcw className="size-3.5" />
+                          Refund
+                        </Button>
+                      )}
+                      {cancellableStatuses.includes(invoice.status) && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => cancelInvoice(invoice.id)}
+                        >
+                          <X className="size-3.5" />
+                          Cancel
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Pagination>
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious
+              href="#"
+              onClick={(event) => {
+                event.preventDefault()
+                if (page > 1) setPage((current) => current - 1)
+              }}
+            />
+          </PaginationItem>
+
+          <PaginationItem>
+            <PaginationLink href="#" isActive>
+              {page}
+            </PaginationLink>
+          </PaginationItem>
+
+          <PaginationItem>
+            <PaginationNext
+              href="#"
+              onClick={(event) => {
+                event.preventDefault()
+                if (invoices.length === limit) setPage((current) => current + 1)
+              }}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+
+      <Dialog open={refundOpen} onOpenChange={setRefundOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Refund invoice</DialogTitle>
+          </DialogHeader>
+
+          {refundTarget && (
+            <div className="space-y-4">
+              <div className="rounded-md border border-[#e0e4eb] bg-[#f8f9fa] p-4 text-sm">
+                <div className="font-medium text-[#12141a]">
+                  {refundTarget.invoice_number || `Invoice #${refundTarget.id}`}
+                </div>
+                <div className="text-[#6b707d]">Refund amount: {money(refundTarget.total)}</div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-[#636973]">
+                  Refund reason
+                </label>
+                <textarea
+                  className="min-h-24 w-full rounded-md border border-[#d8dde6] bg-white p-3 text-sm outline-none focus:border-[#9aa3b2]"
+                  placeholder="Optional reason for refund"
+                  value={refundReason}
+                  onChange={(event) => setRefundReason(event.target.value)}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setRefundOpen(false)
+                    setRefundTarget(null)
+                    setRefundReason("")
+                  }}
+                >
+                  Cancel
+                </Button>
+
+                <Button variant="destructive" disabled={refunding} onClick={handleRefund}>
+                  {refunding ? "Refunding..." : "Confirm refund"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+function Metric({
+  label,
+  value,
+  helper,
+  tone = "neutral",
+}: {
+  label: string
+  value: number | string
+  helper: string
+  tone?: "neutral" | "ok" | "warn"
+}) {
+  const toneClass =
+    tone === "ok"
+      ? "text-emerald-700"
+      : tone === "warn"
+        ? "text-amber-700"
+        : "text-[#12141a]"
+
+  return (
+    <div className="rounded-lg border border-[#e0e4eb] bg-white p-4">
+      <div className="text-sm text-[#6b707d]">{label}</div>
+      <div className={`mt-1 text-2xl font-semibold ${toneClass}`}>{value}</div>
+      <div className="text-sm text-[#6b707d]">{helper}</div>
+    </div>
+  )
 }

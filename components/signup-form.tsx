@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { cn } from "@/lib/utils"
-import { apiFetch } from "@/lib/api"
+import { apiFetch, type AuthTokens } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 
 import { Button } from "@/components/ui/button"
@@ -47,6 +47,7 @@ export function SignupForm({
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
 
   function handleOrgNameChange(value: string) {
@@ -68,10 +69,11 @@ export function SignupForm({
     e.preventDefault()
 
     setLoading(true)
+    setError("")
 
     try {
 
-      const res = await apiFetch<{ access_token: string }>("/auth/signup", {
+      const res = await apiFetch<AuthTokens>("/auth/signup", {
         method: "POST",
         body: JSON.stringify({
           organization_name: orgName,
@@ -81,12 +83,12 @@ export function SignupForm({
         }),
       })
 
-      login(res.access_token)
+      login(res)
 
-      router.push("/")
+      router.push("/dashboard")
 
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Signup failed")
     }
 
     setLoading(false)
@@ -110,12 +112,17 @@ export function SignupForm({
           <form onSubmit={handleSubmit}>
 
             <FieldGroup>
+              {error && (
+                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
 
               <Field>
                 <FieldLabel htmlFor="orgName">Organization Name</FieldLabel>
                 <Input
                   id="orgName"
-                  placeholder="DevOps Team"
+                  placeholder="Opslora Labs"
                   value={orgName}
                   onChange={(e) => handleOrgNameChange(e.target.value)}
                   required
@@ -126,7 +133,7 @@ export function SignupForm({
                 <FieldLabel htmlFor="orgSlug">Organization Slug</FieldLabel>
                 <Input
                   id="orgSlug"
-                  placeholder="devops-team"
+                  placeholder="opslora-labs"
                   value={orgSlug}
                   onChange={(e) => handleSlugChange(e.target.value)}
                   required
@@ -141,7 +148,7 @@ export function SignupForm({
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder="admin@opslora.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
