@@ -28,6 +28,12 @@ COPY --from=builder --chown=node:node /app/public ./public
 COPY --from=builder --chown=node:node /app/package.json ./package.json
 COPY --from=builder --chown=node:node /app/next.config.* ./
 
+# Runtime starts Next directly with node, so npm is not needed in the final image.
+# Removing bundled npm also removes scanner findings from npm's own transitive deps.
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx
+
 USER node
 
 EXPOSE 3000
