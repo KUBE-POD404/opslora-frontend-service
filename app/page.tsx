@@ -8,8 +8,7 @@ import {
   FileText,
       Receipt,
   Search,
-    ShoppingCart,
-  Sparkles,
+  ShoppingCart,
   Users,
 } from "lucide-react"
 
@@ -44,9 +43,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-30 border-b border-black/10 bg-[#f7f7f4]/85 backdrop-blur-xl">
         <div className="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-5">
           <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-[-0.02em]">
-            <span className="flex size-8 items-center justify-center rounded-[9px] bg-gradient-to-br from-[#18181b] to-[#3f46d8] text-white shadow-[0_10px_24px_rgba(63,70,216,0.22)]">
-              <Sparkles className="size-4" />
-            </span>
+            <img src="/opslora-mark.svg" alt="" className="size-8 rounded-[9px] shadow-[0_10px_24px_rgba(63,70,216,0.22)]" />
             Opslora
           </Link>
           <nav className="hidden items-center gap-6 text-xs font-semibold uppercase tracking-[0.08em] text-[#6b6f76] md:flex">
