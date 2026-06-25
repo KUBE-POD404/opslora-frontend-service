@@ -39,6 +39,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { apiFetch } from "@/lib/api"
+import { MetricCard, OperationsPage, Panel, PanelToolbar } from "@/components/operations/page-chrome"
 
 type Invoice = {
   id: number
@@ -197,35 +198,35 @@ export default function InvoicesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#12141a]">Invoices</h1>
-          <p className="text-sm text-[#6b707d]">
-            Track receivables, due dates, payments, and refunds.
-          </p>
-        </div>
-      </div>
-
+    <OperationsPage
+      eyebrow="Receivables"
+      title="Keep invoices, due dates, and payment actions visible."
+      description="Track what is unpaid, what has been collected, and what Lora can turn into a clear customer follow-up."
+      loraPrompts={[
+        "Draft follow-ups for overdue unpaid invoices",
+        "Summarize receivables by customer",
+        "Find invoices that are ready for payment reminders",
+      ]}
+    >
       <div className="grid gap-3 md:grid-cols-3">
-        <Metric label="Open invoices" value={metrics.open} helper="Need payment" />
-        <Metric label="Paid invoices" value={metrics.paid} helper="Collected" tone="ok" />
-        <Metric label="Amount due" value={money(metrics.amountDue)} helper="Open total" tone="warn" />
+        <MetricCard label="Open invoices" value={metrics.open} helper="Need payment" tone={metrics.open > 0 ? "warn" : "neutral"} />
+        <MetricCard label="Paid invoices" value={metrics.paid} helper="Collected" tone="ok" />
+        <MetricCard label="Amount due" value={money(metrics.amountDue)} helper="Open total" tone="warn" />
       </div>
 
-      <div className="rounded-lg border border-[#e0e4eb] bg-white">
-        <div className="flex flex-col gap-3 border-b border-[#e0e4eb] p-3 md:flex-row md:items-center md:justify-between">
+      <Panel>
+        <PanelToolbar>
           <div className="relative w-full md:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#6b707d]" />
             <Input
-              className="h-9 rounded-md pl-9"
+              className="h-10 rounded-[9px] border-black/10 bg-white pl-9"
               placeholder="Search invoice, customer, or order"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-9 rounded-md md:w-[180px]">
+            <SelectTrigger className="h-10 rounded-[9px] border-black/10 bg-white md:w-[180px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -237,7 +238,7 @@ export default function InvoicesPage() {
               <SelectItem value="CANCELLED">Cancelled</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        </PanelToolbar>
 
         <Table>
           <TableHeader>
@@ -340,7 +341,7 @@ export default function InvoicesPage() {
               ))}
           </TableBody>
         </Table>
-      </div>
+      </Panel>
 
       <Pagination>
         <PaginationContent>
@@ -419,33 +420,6 @@ export default function InvoicesPage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
-  )
-}
-
-function Metric({
-  label,
-  value,
-  helper,
-  tone = "neutral",
-}: {
-  label: string
-  value: number | string
-  helper: string
-  tone?: "neutral" | "ok" | "warn"
-}) {
-  const toneClass =
-    tone === "ok"
-      ? "text-emerald-700"
-      : tone === "warn"
-        ? "text-amber-700"
-        : "text-[#12141a]"
-
-  return (
-    <div className="rounded-lg border border-[#e0e4eb] bg-white p-4">
-      <div className="text-sm text-[#6b707d]">{label}</div>
-      <div className={`mt-1 text-2xl font-semibold ${toneClass}`}>{value}</div>
-      <div className="text-sm text-[#6b707d]">{helper}</div>
-    </div>
+    </OperationsPage>
   )
 }
