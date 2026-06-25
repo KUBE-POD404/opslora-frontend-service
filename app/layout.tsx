@@ -6,7 +6,14 @@ import { AuthProvider } from "@/lib/auth-context";
 
 export const metadata: Metadata = {
   title: "Opslora",
-  description: "Business operations platform for customers, inventory, orders, invoices, and payments.",
+  description: "Business operations platform for customers, inventory, orders, invoices, payments, and Lora AI automation.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico" },
+    ],
+    apple: "/opslora-icon.png",
+  },
 };
 
 export default function RootLayout({

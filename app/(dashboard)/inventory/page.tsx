@@ -31,6 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { apiFetch } from "@/lib/api"
+import { MetricCard, OperationsPage, Panel, PanelToolbar } from "@/components/operations/page-chrome"
 
 type Product = {
   id: number
@@ -289,32 +290,34 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#12141a]">Inventory</h1>
-          <p className="text-sm text-[#6b707d]">
-            Product catalog, SKU pricing, and stock visibility.
-          </p>
-        </div>
-        <Button className="h-9 rounded-md" onClick={openCreateProduct}>
+    <OperationsPage
+      eyebrow="Inventory control"
+      title="Keep stock, SKUs, and sellable items ready."
+      description="Track product catalog health, low-stock signals, prices, and manual adjustments before an order becomes a problem."
+      primaryAction={(
+        <Button className="h-10 rounded-[9px] bg-[#18181b] text-white hover:bg-black" onClick={openCreateProduct}>
           <PackagePlus className="size-4" />
           New product
         </Button>
-      </div>
-
+      )}
+      loraPrompts={[
+        "Find products at or below low-stock threshold",
+        "Explain which SKUs may block confirmed orders",
+        "Draft a purchase reminder for low-stock products",
+      ]}
+    >
       <div className="grid gap-3 md:grid-cols-3">
-        <Metric label="Total SKUs" value={metrics.totalSkus} />
-        <Metric label="Active products" value={metrics.activeProducts} />
-        <Metric label="Low stock" value={metrics.lowStock} tone={metrics.lowStock > 0 ? "warn" : "ok"} />
+        <MetricCard label="Total SKUs" value={metrics.totalSkus} helper="Catalog size" />
+        <MetricCard label="Active products" value={metrics.activeProducts} helper="Sellable now" tone="ok" />
+        <MetricCard label="Low stock" value={metrics.lowStock} helper="Needs attention" tone={metrics.lowStock > 0 ? "warn" : "ok"} />
       </div>
 
-      <div className="rounded-lg border border-[#e0e4eb] bg-white">
-        <div className="flex flex-col gap-3 border-b border-[#e0e4eb] p-3 md:flex-row md:items-center md:justify-between">
+      <Panel>
+        <PanelToolbar>
           <div className="relative w-full md:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#6b707d]" />
             <Input
-              className="h-9 rounded-md pl-9"
+              className="h-10 rounded-[9px] border-black/10 bg-white pl-9"
               placeholder="Search product, SKU, or HSN"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -322,13 +325,13 @@ export default function InventoryPage() {
           </div>
           <Button
             variant={activeOnly ? "default" : "outline"}
-            className="h-9 rounded-md"
+            className="h-10 rounded-[9px]"
             onClick={() => setActiveOnly((value) => !value)}
           >
             <SlidersHorizontal className="size-4" />
             Active only
           </Button>
-        </div>
+        </PanelToolbar>
 
         <Table>
           <TableHeader>
@@ -414,7 +417,7 @@ export default function InventoryPage() {
               })}
           </TableBody>
         </Table>
-      </div>
+      </Panel>
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-2xl">
@@ -519,7 +522,7 @@ export default function InventoryPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </OperationsPage>
   )
 }
 
@@ -528,32 +531,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div className="grid gap-2">
       <Label className="text-xs font-medium text-[#636973]">{label}</Label>
       {children}
-    </div>
-  )
-}
-
-function Metric({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string
-  value: number
-  tone?: "neutral" | "ok" | "warn"
-}) {
-  const toneClass =
-    tone === "ok"
-      ? "text-emerald-700"
-      : tone === "warn"
-        ? "text-amber-700"
-        : "text-[#12141a]"
-
-  return (
-    <div className="rounded-lg border border-[#e0e4eb] bg-white p-4">
-      <div className="text-xs font-medium uppercase tracking-normal text-[#6b707d]">
-        {label}
-      </div>
-      <div className={`mt-2 text-2xl font-semibold ${toneClass}`}>{value}</div>
     </div>
   )
 }

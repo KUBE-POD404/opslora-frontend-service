@@ -55,6 +55,7 @@ import {
 
 import { apiFetch } from "@/lib/api"
 import { useRouter } from "next/navigation"
+import { MetricCard, OperationsPage, Panel, PanelToolbar } from "@/components/operations/page-chrome"
 
 /* ================= TYPES ================= */
 
@@ -417,45 +418,46 @@ export default function OrdersPage() {
     /* ================= RENDER ================= */
 
     return (
-        <div className="space-y-6">
-            {/* HEADER */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                    <h1 className="text-2xl font-semibold text-[#12141a]">Orders</h1>
-                    <p className="text-sm text-[#6b707d]">Create, confirm, and invoice customer orders.</p>
-                </div>
-
-                <div className="flex gap-2">
-                    <Button
-                        className="h-9 rounded-md"
-                        onClick={() => {
-                            setEditingOrder(null)
-                            setCustomerId("")
-                            setItems([{ product_id: null, product_name: "", quantity: 1, unit_price: 0 }])
-                            setOpen(true)
-                        }}
-                    >
-                        <Plus className="h-4 w-4" />
-                        Create Order
-                    </Button>
-                </div>
-            </div>
-
+        <OperationsPage
+            eyebrow="Order workflow"
+            title="Move customer orders from draft to invoice without losing context."
+            description="Create orders, confirm sellable lines, and let Lora find what can be invoiced or followed up next."
+            primaryAction={(
+                <Button
+                    className="h-10 rounded-[9px] bg-[#18181b] text-white hover:bg-black"
+                    onClick={() => {
+                        setEditingOrder(null)
+                        setCustomerId("")
+                        setItems([{ product_id: null, product_name: "", quantity: 1, unit_price: 0 }])
+                        setOpen(true)
+                    }}
+                >
+                    <Plus className="h-4 w-4" />
+                    Create order
+                </Button>
+            )}
+            loraPrompts={[
+                "Which confirmed orders can be invoiced today?",
+                "Find draft orders that need confirmation",
+                "Draft follow-ups for orders waiting on customers",
+            ]}
+        >
             <div className="grid gap-3 md:grid-cols-3">
-                <Metric label="Draft orders" value={createdCount} helper="Need confirmation" />
-                <Metric label="Confirmed" value={confirmedCount} helper="Ready for invoicing" />
-                <Metric label="To invoice" value={uninvoicedCount} helper="No invoice yet" />
+                <MetricCard label="Draft orders" value={createdCount} helper="Need confirmation" tone={createdCount > 0 ? "warn" : "neutral"} />
+                <MetricCard label="Confirmed" value={confirmedCount} helper="Ready for invoicing" tone="ok" />
+                <MetricCard label="To invoice" value={uninvoicedCount} helper="No invoice yet" tone={uninvoicedCount > 0 ? "warn" : "neutral"} />
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-[#141922] p-3 shadow-[0_18px_60px_rgba(0,0,0,0.18)]">
-                <div className="grid gap-3 xl:grid-cols-[minmax(240px,1fr)_180px_240px_auto]">
+            <Panel>
+                <PanelToolbar>
+                <div className="grid w-full gap-3 xl:grid-cols-[minmax(240px,1fr)_180px_240px_auto]">
                     <div className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#7d8797]" />
                         <Input
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
                             placeholder="Search order, customer, status, amount"
-                            className="h-10 rounded-md border-white/10 bg-[#0c1017] pl-9 text-[#e8edf4] placeholder:text-[#697386]"
+                            className="h-10 rounded-[9px] border-black/10 bg-white pl-9"
                         />
                     </div>
 
@@ -466,7 +468,7 @@ export default function OrdersPage() {
                             setStatusFilter(value === "ALL" ? null : value)
                         }}
                     >
-                        <SelectTrigger className="h-10 w-full border-white/10 bg-[#0c1017] text-[#e8edf4]">
+                        <SelectTrigger className="h-10 w-full rounded-[9px] border-black/10 bg-white">
                             <SelectValue placeholder="All statuses" />
                         </SelectTrigger>
                         <SelectContent>
@@ -484,7 +486,7 @@ export default function OrdersPage() {
                             setCustomerFilter(value === "ALL" ? null : value)
                         }}
                     >
-                        <SelectTrigger className="h-10 w-full border-white/10 bg-[#0c1017] text-[#e8edf4]">
+                        <SelectTrigger className="h-10 w-full rounded-[9px] border-black/10 bg-white">
                             <SelectValue placeholder="All customers" />
                         </SelectTrigger>
                         <SelectContent>
@@ -499,7 +501,7 @@ export default function OrdersPage() {
 
                     <Button
                         variant="outline"
-                        className="h-10 border-white/10 bg-white/[0.03] text-[#d9e2ee] hover:bg-white/[0.07]"
+                        className="h-10 rounded-[9px] border-black/10 bg-white"
                         disabled={activeFilterCount === 0}
                         onClick={() => {
                             setStatusFilter(null)
@@ -512,8 +514,9 @@ export default function OrdersPage() {
                         Clear
                     </Button>
                 </div>
+                </PanelToolbar>
 
-                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                <div className="flex flex-wrap gap-2 border-b border-black/10 bg-white px-3 py-3 text-xs">
                     {[
                         ["ALL", "All"],
                         ["CREATED", "Draft"],
@@ -530,22 +533,22 @@ export default function OrdersPage() {
                                     setStatusFilter(value === "ALL" ? null : value)
                                 }}
                                 className={`rounded-full border px-3 py-1.5 transition ${active
-                                    ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-100"
-                                    : "border-white/10 bg-white/[0.03] text-[#8790a0] hover:text-[#d9e2ee]"
+                                    ? "border-[#3f46d8]/30 bg-[#f4f4ff] text-[#3f46d8]"
+                                    : "border-black/10 bg-white text-[#6b6f76] hover:text-[#18181b]"
                                     }`}
                             >
                                 {label}
                             </button>
                         )
                     })}
-                    <span className="ml-auto text-[#7d8797]">
+                    <span className="ml-auto text-[#6b6f76]">
                         Showing {filteredOrders.length} of {orders.length}
                     </span>
                 </div>
-            </div>
+            </Panel>
 
             {/* TABLE */}
-            <div className="rounded-lg border border-[#e0e4eb] bg-white">
+            <Panel>
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -641,7 +644,7 @@ export default function OrdersPage() {
                         )}
                     </TableBody>
                 </Table>
-            </div>
+            </Panel>
 
             {/* PAGINATION */}
             <Pagination>
@@ -868,16 +871,6 @@ export default function OrdersPage() {
                 </AlertDialogContent>
             </AlertDialog>
 
-        </div>
-    )
-}
-
-function Metric({ label, value, helper }: { label: string; value: number; helper: string }) {
-    return (
-        <div className="rounded-lg border border-[#e0e4eb] bg-white p-4">
-            <div className="text-sm text-[#6b707d]">{label}</div>
-            <div className="mt-1 text-2xl font-semibold text-[#12141a]">{value}</div>
-            <div className="text-sm text-[#6b707d]">{helper}</div>
-        </div>
+        </OperationsPage>
     )
 }

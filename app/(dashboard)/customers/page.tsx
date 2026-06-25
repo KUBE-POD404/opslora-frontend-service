@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import type { Customer } from "@/components/customers/customer-form"
+import { MetricCard, OperationsPage, Panel, PanelToolbar } from "@/components/operations/page-chrome"
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -86,31 +87,33 @@ export default function CustomersPage() {
   }, [page, search])
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#12141a]">Customers</h1>
-          <p className="text-sm text-[#6b707d]">
-            Manage buyer profiles, tax details, addresses, and portal access.
-          </p>
-        </div>
-
-        <Button asChild className="h-9 rounded-md">
+    <OperationsPage
+      eyebrow="Customer workspace"
+      title="Know every buyer before the next order."
+      description="Manage customer profiles, tax details, addresses, and portal access with enough context for Lora to draft clean follow-ups."
+      primaryAction={(
+        <Button asChild className="h-10 rounded-[9px] bg-[#18181b] text-white hover:bg-black">
           <Link href="/customers/new">
             <Plus className="h-4 w-4" />
             New customer
           </Link>
         </Button>
-      </div>
-
+      )}
+      loraPrompts={[
+        "Summarize customers missing tax or contact details",
+        "Draft follow-ups for customers with open invoices",
+        "Show active customers without portal access",
+      ]}
+    >
       <div className="grid gap-3 md:grid-cols-3">
-        <Metric label="Shown" value={filteredCustomers.length} helper={loading ? "Loading..." : `Page ${page}`} />
-        <Metric label="Active" value={activeCustomers} helper="Ready for orders" />
-        <Metric label="Portal enabled" value={portalEnabled} helper="Customer self-service" />
+        <MetricCard label="Shown" value={filteredCustomers.length} helper={loading ? "Loading..." : `Page ${page}`} />
+        <MetricCard label="Active" value={activeCustomers} helper="Ready for orders" tone="ok" />
+        <MetricCard label="Portal enabled" value={portalEnabled} helper="Customer self-service" />
       </div>
 
-      <div className="rounded-lg border border-white/10 bg-[#141922] p-3 shadow-[0_18px_60px_rgba(0,0,0,0.18)]">
-        <div className="grid gap-3 xl:grid-cols-[minmax(240px,1fr)_160px_160px_170px_auto]">
+      <Panel>
+        <PanelToolbar>
+        <div className="grid w-full gap-3 xl:grid-cols-[minmax(240px,1fr)_160px_160px_170px_auto]">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b707d]" />
           <Input
@@ -120,7 +123,7 @@ export default function CustomersPage() {
               setSearch(event.target.value)
             }}
             placeholder="Search customers, email, phone, GSTIN"
-            className="h-10 rounded-md border-white/10 bg-[#0c1017] pl-9 text-[#e8edf4] placeholder:text-[#697386]"
+            className="h-10 rounded-[9px] border-black/10 bg-white pl-9"
           />
         </div>
 
@@ -131,7 +134,7 @@ export default function CustomersPage() {
             setStatusFilter(value)
           }}
         >
-          <SelectTrigger className="h-10 w-full border-white/10 bg-[#0c1017] text-[#e8edf4]">
+          <SelectTrigger className="h-10 w-full rounded-[9px] border-black/10 bg-white">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -148,7 +151,7 @@ export default function CustomersPage() {
             setTypeFilter(value)
           }}
         >
-          <SelectTrigger className="h-10 w-full border-white/10 bg-[#0c1017] text-[#e8edf4]">
+          <SelectTrigger className="h-10 w-full rounded-[9px] border-black/10 bg-white">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
@@ -165,7 +168,7 @@ export default function CustomersPage() {
             setPortalFilter(value)
           }}
         >
-          <SelectTrigger className="h-10 w-full border-white/10 bg-[#0c1017] text-[#e8edf4]">
+          <SelectTrigger className="h-10 w-full rounded-[9px] border-black/10 bg-white">
             <SelectValue placeholder="Portal" />
           </SelectTrigger>
           <SelectContent>
@@ -177,7 +180,7 @@ export default function CustomersPage() {
 
         <Button
           variant="outline"
-          className="h-10 border-white/10 bg-white/[0.03] text-[#d9e2ee] hover:bg-white/[0.07]"
+          className="h-10 rounded-[9px] border-black/10 bg-white"
           disabled={activeFilterCount === 0}
           onClick={() => {
             setSearch("")
@@ -191,8 +194,9 @@ export default function CustomersPage() {
           Clear
         </Button>
         </div>
+        </PanelToolbar>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 border-b border-black/10 bg-white px-3 py-3 text-xs">
           {[
             ["ALL", "All customers"],
             ["ACTIVE", "Active"],
@@ -205,21 +209,21 @@ export default function CustomersPage() {
                 type="button"
                 onClick={() => setStatusFilter(value)}
                 className={`rounded-full border px-3 py-1.5 transition ${active
-                  ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-100"
-                  : "border-white/10 bg-white/[0.03] text-[#8790a0] hover:text-[#d9e2ee]"
+                  ? "border-[#3f46d8]/30 bg-[#f4f4ff] text-[#3f46d8]"
+                  : "border-black/10 bg-white text-[#6b6f76] hover:text-[#18181b]"
                   }`}
               >
                 {label}
               </button>
             )
           })}
-          <span className="ml-auto text-[#7d8797]">
+          <span className="ml-auto text-[#6b6f76]">
             Showing {filteredCustomers.length} of {customers.length}
           </span>
         </div>
-      </div>
+      </Panel>
 
-      <div className="rounded-lg border border-[#e0e4eb] bg-white">
+      <Panel>
         <Table>
           <TableHeader>
             <TableRow>
@@ -299,7 +303,7 @@ export default function CustomersPage() {
             )}
           </TableBody>
         </Table>
-      </div>
+      </Panel>
 
       <Pagination>
         <PaginationContent>
@@ -330,16 +334,6 @@ export default function CustomersPage() {
           </PaginationItem>
         </PaginationContent>
       </Pagination>
-    </div>
-  )
-}
-
-function Metric({ label, value, helper }: { label: string; value: number; helper: string }) {
-  return (
-    <div className="rounded-lg border border-[#e0e4eb] bg-white p-4">
-      <div className="text-sm text-[#6b707d]">{label}</div>
-      <div className="mt-1 text-2xl font-semibold text-[#12141a]">{value}</div>
-      <div className="text-sm text-[#6b707d]">{helper}</div>
-    </div>
+    </OperationsPage>
   )
 }

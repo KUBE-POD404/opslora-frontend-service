@@ -3,7 +3,6 @@
 import * as React from "react"
 import {
   BarChart3,
-  Command,
   CreditCard,
   FileText,
   Globe2,
@@ -184,9 +183,11 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg">
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <Command className="size-4" />
-              </div>
+              <img
+                src="/opslora-mark.svg"
+                alt=""
+                className="size-8 rounded-lg shadow-[0_10px_24px_rgba(63,70,216,0.22)]"
+              />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">Opslora</span>
                 <span className="truncate text-xs">Business OS</span>

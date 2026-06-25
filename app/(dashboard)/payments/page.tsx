@@ -31,6 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { apiFetch } from "@/lib/api"
+import { MetricCard, OperationsPage, Panel, PanelToolbar } from "@/components/operations/page-chrome"
 
 type Payment = {
   id: number
@@ -192,33 +193,35 @@ export default function PaymentsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#12141a]">Payments</h1>
-          <p className="text-sm text-[#6b707d]">
-            Reconcile receipts, refunds, and payment methods.
-          </p>
-        </div>
-        <Button variant="outline" className="h-9 rounded-md" onClick={loadPayments}>
+    <OperationsPage
+      eyebrow="Payments"
+      title="Reconcile cash, refunds, and receipt history."
+      description="See collected money, settlement status, refunds, and the transaction trail Lora can summarize for follow-up."
+      primaryAction={(
+        <Button variant="outline" className="h-10 rounded-[9px] border-black/10 bg-white" onClick={loadPayments}>
           <CreditCard className="size-4" />
           Refresh
         </Button>
-      </div>
-
+      )}
+      loraPrompts={[
+        "Summarize today’s successful payments",
+        "Find refunded or partially refunded receipts",
+        "Prepare a reconciliation note for open invoices",
+      ]}
+    >
       <div className="grid gap-3 md:grid-cols-4">
-        <Metric label="Collected" value={`Rs ${metrics.amount.toFixed(2)}`} />
-        <Metric label="Payments" value={metrics.count} />
-        <Metric label="Settled" value={metrics.settled} tone="ok" />
-        <Metric label="Refunded" value={metrics.refunded} tone="warn" />
+        <MetricCard label="Collected" value={`Rs ${metrics.amount.toFixed(2)}`} helper="Successful receipts" tone="ok" />
+        <MetricCard label="Payments" value={metrics.count} helper="Total records" />
+        <MetricCard label="Settled" value={metrics.settled} helper="Ready to reconcile" tone="ok" />
+        <MetricCard label="Refunded" value={metrics.refunded} helper="Needs review" tone={metrics.refunded > 0 ? "warn" : "neutral"} />
       </div>
 
-      <div className="rounded-lg border border-[#e0e4eb] bg-white">
-        <div className="flex flex-col gap-3 border-b border-[#e0e4eb] p-3 lg:flex-row lg:items-center lg:justify-between">
+      <Panel>
+        <PanelToolbar>
           <div className="relative w-full lg:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#6b707d]" />
             <Input
-              className="h-9 rounded-md pl-9"
+              className="h-10 rounded-[9px] border-black/10 bg-white pl-9"
               placeholder="Search payment, invoice, or reference"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -226,7 +229,7 @@ export default function PaymentsPage() {
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="h-9 rounded-md sm:w-[190px]">
+              <SelectTrigger className="h-10 rounded-[9px] border-black/10 bg-white sm:w-[190px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -237,7 +240,7 @@ export default function PaymentsPage() {
               </SelectContent>
             </Select>
             <Select value={method} onValueChange={setMethod}>
-              <SelectTrigger className="h-9 rounded-md sm:w-[180px]">
+              <SelectTrigger className="h-10 rounded-[9px] border-black/10 bg-white sm:w-[180px]">
                 <SelectValue placeholder="Method" />
               </SelectTrigger>
               <SelectContent>
@@ -251,7 +254,7 @@ export default function PaymentsPage() {
               </SelectContent>
             </Select>
           </div>
-        </div>
+        </PanelToolbar>
 
         <Table>
           <TableHeader>
@@ -319,7 +322,7 @@ export default function PaymentsPage() {
               ))}
           </TableBody>
         </Table>
-      </div>
+      </Panel>
 
       <Dialog open={!!selectedPayment && !refundOpen} onOpenChange={() => setSelectedPayment(null)}>
         <DialogContent className="max-w-2xl">
@@ -413,7 +416,7 @@ export default function PaymentsPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </OperationsPage>
   )
 }
 
@@ -437,41 +440,12 @@ function Detail({ label, value }: { label: string; value: ReactNode }) {
   )
 }
 
-function Metric({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string
-  value: number | string
-  tone?: "neutral" | "ok" | "warn"
-}) {
-  const toneClass =
-    tone === "ok"
-      ? "text-emerald-700"
-      : tone === "warn"
-        ? "text-amber-700"
-        : "text-[#12141a]"
-
-  return (
-    <div className="rounded-lg border border-[#e0e4eb] bg-white p-4">
-      <div className="text-xs font-medium uppercase tracking-normal text-[#6b707d]">
-        {label}
-      </div>
-      <div className={`mt-2 text-2xl font-semibold ${toneClass}`}>{value}</div>
-    </div>
-  )
-}
-
 function StatusBadge({ status }: { status: string }) {
-  const className =
-    status === "SUCCEEDED"
+  const className = status.includes("REFUNDED")
+    ? "border-amber-200 bg-amber-50 text-amber-700"
+    : status === "SUCCEEDED"
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : status === "PARTIALLY_REFUNDED"
-        ? "border-amber-200 bg-amber-50 text-amber-700"
-        : status === "REFUNDED"
-          ? "border-blue-200 bg-blue-50 text-blue-700"
-          : "border-red-200 bg-red-50 text-red-700"
+      : "border-slate-200 bg-slate-50 text-slate-600"
 
-  return <Badge className={className}>{status}</Badge>
+  return <Badge className={className}>{status.replace("_", " ")}</Badge>
 }
