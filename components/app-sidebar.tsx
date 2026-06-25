@@ -3,6 +3,7 @@
 import * as React from "react"
 import {
   BarChart3,
+  Bot,
   CreditCard,
   FileText,
   Globe2,
@@ -78,6 +79,12 @@ const data = {
       title: "Payments",
       url: "/payments",
       icon: CreditCard,
+      items: [],
+    },
+    {
+      title: "Lora AI",
+      url: "/lora-ai",
+      icon: Bot,
       items: [],
     },
     {

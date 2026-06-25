@@ -295,16 +295,11 @@ export default function InventoryPage() {
       title="Keep stock, SKUs, and sellable items ready."
       description="Track product catalog health, low-stock signals, prices, and manual adjustments before an order becomes a problem."
       primaryAction={(
-        <Button className="h-10 rounded-[9px] bg-[#18181b] text-white hover:bg-black" onClick={openCreateProduct}>
+        <Button className="h-10 rounded-[9px] bg-[#3f46d8] text-white hover:bg-[#4f57ef]" onClick={openCreateProduct}>
           <PackagePlus className="size-4" />
           New product
         </Button>
       )}
-      loraPrompts={[
-        "Find products at or below low-stock threshold",
-        "Explain which SKUs may block confirmed orders",
-        "Draft a purchase reminder for low-stock products",
-      ]}
     >
       <div className="grid gap-3 md:grid-cols-3">
         <MetricCard label="Total SKUs" value={metrics.totalSkus} helper="Catalog size" />
@@ -317,7 +312,7 @@ export default function InventoryPage() {
           <div className="relative w-full md:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#6b707d]" />
             <Input
-              className="h-10 rounded-[9px] border-black/10 bg-white pl-9"
+              className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] pl-9"
               placeholder="Search product, SKU, or HSN"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -386,7 +381,7 @@ export default function InventoryPage() {
                     <TableCell>{money(product.sale_price)}</TableCell>
                     <TableCell>{Number(product.tax_rate || 0).toFixed(2)}%</TableCell>
                     <TableCell>
-                      <span className={isLow ? "font-medium text-amber-700" : undefined}>
+                      <span className={isLow ? "font-medium text-amber-300" : undefined}>
                         {stockQuantity}
                       </span>
                     </TableCell>
