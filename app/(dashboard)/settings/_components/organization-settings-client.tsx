@@ -331,13 +331,13 @@ export function OrganizationSettingsClient({ section }: { section: SettingsSecti
         </div>
       </div>
 
-      <div className="rounded-lg border border-[#e0e4eb] bg-white px-4 py-4 text-[13px] font-medium text-[#0f6b33]">
+      <div className="rounded-lg border border-white/10 bg-white/[0.04] px-4 py-4 text-[13px] font-medium text-emerald-300">
         Current subpage is selected in the sidebar. No in-page nav is repeated here.
       </div>
 
-      <section className="rounded-lg border border-[#e0e4eb] bg-white p-4 sm:p-5">
+      <section className="rounded-lg border border-white/10 bg-white/[0.04] p-4 sm:p-5">
         <div className="mb-5 flex items-start gap-3">
-          <div className="rounded-md border border-[#e0e4eb] bg-[#f8f9fa] p-2 text-[#6b707d]">
+          <div className="rounded-md border border-white/10 bg-[#f8f9fa] p-2 text-[#6b707d]">
             {copy.icon}
           </div>
           <div>
@@ -451,7 +451,7 @@ function TextField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-9 rounded-md border-[#e0e4eb] text-xs"
+        className="h-9 rounded-md border-white/10 text-xs"
       />
     </Field>
   )
@@ -485,7 +485,7 @@ function NumberField({
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-9 rounded-md border-[#e0e4eb] text-xs"
+        className="h-9 rounded-md border-white/10 text-xs"
       />
     </Field>
   )

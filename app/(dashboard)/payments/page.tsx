@@ -196,18 +196,13 @@ export default function PaymentsPage() {
     <OperationsPage
       eyebrow="Payments"
       title="Reconcile cash, refunds, and receipt history."
-      description="See collected money, settlement status, refunds, and the transaction trail Lora can summarize for follow-up."
+      description="See collected money, settlement status, refunds, and the full transaction trail."
       primaryAction={(
-        <Button variant="outline" className="h-10 rounded-[9px] border-black/10 bg-white" onClick={loadPayments}>
+        <Button variant="outline" className="h-10 rounded-[9px] border-white/10 bg-white/[0.04]" onClick={loadPayments}>
           <CreditCard className="size-4" />
           Refresh
         </Button>
       )}
-      loraPrompts={[
-        "Summarize today’s successful payments",
-        "Find refunded or partially refunded receipts",
-        "Prepare a reconciliation note for open invoices",
-      ]}
     >
       <div className="grid gap-3 md:grid-cols-4">
         <MetricCard label="Collected" value={`Rs ${metrics.amount.toFixed(2)}`} helper="Successful receipts" tone="ok" />
@@ -221,7 +216,7 @@ export default function PaymentsPage() {
           <div className="relative w-full lg:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#6b707d]" />
             <Input
-              className="h-10 rounded-[9px] border-black/10 bg-white pl-9"
+              className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] pl-9"
               placeholder="Search payment, invoice, or reference"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -229,7 +224,7 @@ export default function PaymentsPage() {
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="h-10 rounded-[9px] border-black/10 bg-white sm:w-[190px]">
+              <SelectTrigger className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] sm:w-[190px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -240,7 +235,7 @@ export default function PaymentsPage() {
               </SelectContent>
             </Select>
             <Select value={method} onValueChange={setMethod}>
-              <SelectTrigger className="h-10 rounded-[9px] border-black/10 bg-white sm:w-[180px]">
+              <SelectTrigger className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] sm:w-[180px]">
                 <SelectValue placeholder="Method" />
               </SelectTrigger>
               <SelectContent>
@@ -442,7 +437,7 @@ function Detail({ label, value }: { label: string; value: ReactNode }) {
 
 function StatusBadge({ status }: { status: string }) {
   const className = status.includes("REFUNDED")
-    ? "border-amber-200 bg-amber-50 text-amber-700"
+    ? "border-amber-200 bg-amber-50 text-amber-300"
     : status === "SUCCEEDED"
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
       : "border-slate-200 bg-slate-50 text-slate-600"

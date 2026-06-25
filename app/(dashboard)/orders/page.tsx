@@ -104,7 +104,7 @@ function money(value: number) {
 
 function statusClass(status: string) {
     if (status === "CONFIRMED") return "border-emerald-200 bg-emerald-50 text-emerald-700"
-    if (status === "CREATED") return "border-amber-200 bg-amber-50 text-amber-700"
+    if (status === "CREATED") return "border-amber-200 bg-amber-50 text-amber-300"
     return "border-red-200 bg-red-50 text-red-700"
 }
 
@@ -421,10 +421,10 @@ export default function OrdersPage() {
         <OperationsPage
             eyebrow="Order workflow"
             title="Move customer orders from draft to invoice without losing context."
-            description="Create orders, confirm sellable lines, and let Lora find what can be invoiced or followed up next."
+            description="Create orders, confirm sellable lines, and keep the order-to-invoice workflow moving."
             primaryAction={(
                 <Button
-                    className="h-10 rounded-[9px] bg-[#18181b] text-white hover:bg-black"
+                    className="h-10 rounded-[9px] bg-[#3f46d8] text-white hover:bg-[#4f57ef]"
                     onClick={() => {
                         setEditingOrder(null)
                         setCustomerId("")
@@ -436,12 +436,7 @@ export default function OrdersPage() {
                     Create order
                 </Button>
             )}
-            loraPrompts={[
-                "Which confirmed orders can be invoiced today?",
-                "Find draft orders that need confirmation",
-                "Draft follow-ups for orders waiting on customers",
-            ]}
-        >
+              >
             <div className="grid gap-3 md:grid-cols-3">
                 <MetricCard label="Draft orders" value={createdCount} helper="Need confirmation" tone={createdCount > 0 ? "warn" : "neutral"} />
                 <MetricCard label="Confirmed" value={confirmedCount} helper="Ready for invoicing" tone="ok" />
@@ -457,7 +452,7 @@ export default function OrdersPage() {
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
                             placeholder="Search order, customer, status, amount"
-                            className="h-10 rounded-[9px] border-black/10 bg-white pl-9"
+                            className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] pl-9"
                         />
                     </div>
 
@@ -468,7 +463,7 @@ export default function OrdersPage() {
                             setStatusFilter(value === "ALL" ? null : value)
                         }}
                     >
-                        <SelectTrigger className="h-10 w-full rounded-[9px] border-black/10 bg-white">
+                        <SelectTrigger className="h-10 w-full rounded-[9px] border-white/10 bg-white/[0.04]">
                             <SelectValue placeholder="All statuses" />
                         </SelectTrigger>
                         <SelectContent>
@@ -486,7 +481,7 @@ export default function OrdersPage() {
                             setCustomerFilter(value === "ALL" ? null : value)
                         }}
                     >
-                        <SelectTrigger className="h-10 w-full rounded-[9px] border-black/10 bg-white">
+                        <SelectTrigger className="h-10 w-full rounded-[9px] border-white/10 bg-white/[0.04]">
                             <SelectValue placeholder="All customers" />
                         </SelectTrigger>
                         <SelectContent>
@@ -501,7 +496,7 @@ export default function OrdersPage() {
 
                     <Button
                         variant="outline"
-                        className="h-10 rounded-[9px] border-black/10 bg-white"
+                        className="h-10 rounded-[9px] border-white/10 bg-white/[0.04]"
                         disabled={activeFilterCount === 0}
                         onClick={() => {
                             setStatusFilter(null)
@@ -516,7 +511,7 @@ export default function OrdersPage() {
                 </div>
                 </PanelToolbar>
 
-                <div className="flex flex-wrap gap-2 border-b border-black/10 bg-white px-3 py-3 text-xs">
+                <div className="flex flex-wrap gap-2 border-b border-white/10 bg-white/[0.04] px-3 py-3 text-xs">
                     {[
                         ["ALL", "All"],
                         ["CREATED", "Draft"],
@@ -534,14 +529,14 @@ export default function OrdersPage() {
                                 }}
                                 className={`rounded-full border px-3 py-1.5 transition ${active
                                     ? "border-[#3f46d8]/30 bg-[#f4f4ff] text-[#3f46d8]"
-                                    : "border-black/10 bg-white text-[#6b6f76] hover:text-[#18181b]"
+                                    : "border-white/10 bg-white/[0.04] text-[#8790a0] hover:text-[#f7f8fb]"
                                     }`}
                             >
                                 {label}
                             </button>
                         )
                     })}
-                    <span className="ml-auto text-[#6b6f76]">
+                    <span className="ml-auto text-[#8790a0]">
                         Showing {filteredOrders.length} of {orders.length}
                     </span>
                 </div>

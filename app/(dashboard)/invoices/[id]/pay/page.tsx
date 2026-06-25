@@ -172,7 +172,7 @@ export default function AddPaymentPage() {
             {invoice.invoice_number || `Invoice #${invoice.id}`} - {invoice.customer_name || "Customer"}
           </p>
         </div>
-        <div className="rounded-lg border border-[#e0e4eb] bg-white p-3 text-sm">
+        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3 text-sm">
           <div className="text-[#6b707d]">Due date</div>
           <div className="font-medium">{date(invoice.due_date)}</div>
         </div>
@@ -185,7 +185,7 @@ export default function AddPaymentPage() {
       </div>
 
       {payments.length > 0 && (
-        <div className="rounded-lg border border-[#e0e4eb] bg-white">
+        <div className="rounded-lg border border-white/10 bg-white/[0.04]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -211,7 +211,7 @@ export default function AddPaymentPage() {
         </div>
       )}
 
-      <form className="rounded-lg border border-[#e0e4eb] bg-white p-6" onSubmit={handlePay}>
+      <form className="rounded-lg border border-white/10 bg-white/[0.04] p-6" onSubmit={handlePay}>
         <div className="grid gap-5 md:grid-cols-2">
           <Field label="Payment method">
             <Select value={method} onValueChange={(value) => setMethod(value as PaymentMethod)}>
@@ -301,7 +301,7 @@ function Metric({
         : "text-[#12141a]"
 
   return (
-    <div className="rounded-lg border border-[#e0e4eb] bg-white p-4">
+    <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
       <div className="text-sm text-[#6b707d]">{label}</div>
       <div className={`mt-1 text-2xl font-semibold ${toneClass}`}>{value}</div>
     </div>

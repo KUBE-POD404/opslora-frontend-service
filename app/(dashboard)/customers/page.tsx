@@ -90,20 +90,15 @@ export default function CustomersPage() {
     <OperationsPage
       eyebrow="Customer workspace"
       title="Know every buyer before the next order."
-      description="Manage customer profiles, tax details, addresses, and portal access with enough context for Lora to draft clean follow-ups."
+      description="Manage customer profiles, tax details, addresses, portal access, and account status in one workspace."
       primaryAction={(
-        <Button asChild className="h-10 rounded-[9px] bg-[#18181b] text-white hover:bg-black">
+        <Button asChild className="h-10 rounded-[9px] bg-[#3f46d8] text-white hover:bg-[#4f57ef]">
           <Link href="/customers/new">
             <Plus className="h-4 w-4" />
             New customer
           </Link>
         </Button>
       )}
-      loraPrompts={[
-        "Summarize customers missing tax or contact details",
-        "Draft follow-ups for customers with open invoices",
-        "Show active customers without portal access",
-      ]}
     >
       <div className="grid gap-3 md:grid-cols-3">
         <MetricCard label="Shown" value={filteredCustomers.length} helper={loading ? "Loading..." : `Page ${page}`} />
@@ -123,7 +118,7 @@ export default function CustomersPage() {
               setSearch(event.target.value)
             }}
             placeholder="Search customers, email, phone, GSTIN"
-            className="h-10 rounded-[9px] border-black/10 bg-white pl-9"
+            className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] pl-9"
           />
         </div>
 
@@ -134,7 +129,7 @@ export default function CustomersPage() {
             setStatusFilter(value)
           }}
         >
-          <SelectTrigger className="h-10 w-full rounded-[9px] border-black/10 bg-white">
+          <SelectTrigger className="h-10 w-full rounded-[9px] border-white/10 bg-white/[0.04]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -151,7 +146,7 @@ export default function CustomersPage() {
             setTypeFilter(value)
           }}
         >
-          <SelectTrigger className="h-10 w-full rounded-[9px] border-black/10 bg-white">
+          <SelectTrigger className="h-10 w-full rounded-[9px] border-white/10 bg-white/[0.04]">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
@@ -168,7 +163,7 @@ export default function CustomersPage() {
             setPortalFilter(value)
           }}
         >
-          <SelectTrigger className="h-10 w-full rounded-[9px] border-black/10 bg-white">
+          <SelectTrigger className="h-10 w-full rounded-[9px] border-white/10 bg-white/[0.04]">
             <SelectValue placeholder="Portal" />
           </SelectTrigger>
           <SelectContent>
@@ -180,7 +175,7 @@ export default function CustomersPage() {
 
         <Button
           variant="outline"
-          className="h-10 rounded-[9px] border-black/10 bg-white"
+          className="h-10 rounded-[9px] border-white/10 bg-white/[0.04]"
           disabled={activeFilterCount === 0}
           onClick={() => {
             setSearch("")
@@ -196,7 +191,7 @@ export default function CustomersPage() {
         </div>
         </PanelToolbar>
 
-        <div className="flex flex-wrap items-center gap-2 border-b border-black/10 bg-white px-3 py-3 text-xs">
+        <div className="flex flex-wrap items-center gap-2 border-b border-white/10 bg-white/[0.04] px-3 py-3 text-xs">
           {[
             ["ALL", "All customers"],
             ["ACTIVE", "Active"],
@@ -210,14 +205,14 @@ export default function CustomersPage() {
                 onClick={() => setStatusFilter(value)}
                 className={`rounded-full border px-3 py-1.5 transition ${active
                   ? "border-[#3f46d8]/30 bg-[#f4f4ff] text-[#3f46d8]"
-                  : "border-black/10 bg-white text-[#6b6f76] hover:text-[#18181b]"
+                  : "border-white/10 bg-white/[0.04] text-[#8790a0] hover:text-[#f7f8fb]"
                   }`}
               >
                 {label}
               </button>
             )
           })}
-          <span className="ml-auto text-[#6b6f76]">
+          <span className="ml-auto text-[#8790a0]">
             Showing {filteredCustomers.length} of {customers.length}
           </span>
         </div>

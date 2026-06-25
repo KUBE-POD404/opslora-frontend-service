@@ -76,7 +76,7 @@ function formatDate(value: string) {
 function statusClass(status: string) {
   if (status === "PAID") return "border-emerald-200 bg-emerald-50 text-emerald-700"
   if (status === "PARTIALLY_PAID") return "border-blue-200 bg-blue-50 text-blue-700"
-  if (status === "UNPAID") return "border-amber-200 bg-amber-50 text-amber-700"
+  if (status === "UNPAID") return "border-amber-200 bg-amber-50 text-amber-300"
   if (status === "REFUNDED") return "border-slate-200 bg-slate-50 text-slate-600"
   if (status === "CANCELLED") return "border-red-200 bg-red-50 text-red-700"
 
@@ -201,12 +201,7 @@ export default function InvoicesPage() {
     <OperationsPage
       eyebrow="Receivables"
       title="Keep invoices, due dates, and payment actions visible."
-      description="Track what is unpaid, what has been collected, and what Lora can turn into a clear customer follow-up."
-      loraPrompts={[
-        "Draft follow-ups for overdue unpaid invoices",
-        "Summarize receivables by customer",
-        "Find invoices that are ready for payment reminders",
-      ]}
+      description="Track what is unpaid, what has been collected, and which invoices need action."
     >
       <div className="grid gap-3 md:grid-cols-3">
         <MetricCard label="Open invoices" value={metrics.open} helper="Need payment" tone={metrics.open > 0 ? "warn" : "neutral"} />
@@ -219,14 +214,14 @@ export default function InvoicesPage() {
           <div className="relative w-full md:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#6b707d]" />
             <Input
-              className="h-10 rounded-[9px] border-black/10 bg-white pl-9"
+              className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] pl-9"
               placeholder="Search invoice, customer, or order"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-10 rounded-[9px] border-black/10 bg-white md:w-[180px]">
+            <SelectTrigger className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] md:w-[180px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -393,7 +388,7 @@ export default function InvoicesPage() {
                   Refund reason
                 </label>
                 <textarea
-                  className="min-h-24 w-full rounded-md border border-[#d8dde6] bg-white p-3 text-sm outline-none focus:border-[#9aa3b2]"
+                  className="min-h-24 w-full rounded-md border border-[#d8dde6] bg-white/[0.04] p-3 text-sm outline-none focus:border-[#9aa3b2]"
                   placeholder="Optional reason for refund"
                   value={refundReason}
                   onChange={(event) => setRefundReason(event.target.value)}

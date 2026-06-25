@@ -196,8 +196,8 @@ export default function CreateInvoicePage() {
         </Button>
       </div>
 
-      <div className="rounded-lg border border-[#e0e4eb] bg-white p-6 shadow-sm space-y-8">
-        <div className="grid gap-3 rounded-lg border border-[#e0e4eb] bg-[#f8f9fa] p-4 md:grid-cols-4">
+      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-6 shadow-[0_16px_50px_rgba(0,0,0,0.16)] space-y-8">
+        <div className="grid gap-3 rounded-lg border border-white/10 bg-[#f8f9fa] p-4 md:grid-cols-4">
           <PreviewMeta label="Order status" value={order.status} />
           <PreviewMeta label="Customer" value={order.customer_name || customerName} />
           <PreviewMeta label="GSTIN" value={order.customer_gstin || "-"} />
@@ -249,7 +249,7 @@ export default function CreateInvoicePage() {
 
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <div className="space-y-4">
-            <div className="rounded-lg border border-[#e0e4eb] p-4 space-y-4">
+            <div className="rounded-lg border border-white/10 p-4 space-y-4">
               <div>
                 <h3 className="text-sm font-medium text-[#636973]">Invoice template</h3>
                 <p className="mt-1 text-xs text-[#6b707d]">
@@ -271,7 +271,7 @@ export default function CreateInvoicePage() {
               {templates
                 .filter((template) => template.key === selectedTemplateKey)
                 .map((template) => (
-                  <div key={template.key} className="rounded-md border border-[#e0e4eb] bg-[#f8f9fa] p-3">
+                  <div key={template.key} className="rounded-md border border-white/10 bg-[#f8f9fa] p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="font-medium text-[#12141a]">{template.name}</div>
                       <div className="text-xs text-[#6b707d]">v{template.version}</div>
@@ -281,7 +281,7 @@ export default function CreateInvoicePage() {
                 ))}
             </div>
 
-            <div className="rounded-lg border border-[#e0e4eb] p-4 space-y-4">
+            <div className="rounded-lg border border-white/10 p-4 space-y-4">
               <h3 className="text-sm font-medium text-[#636973]">Discount</h3>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
@@ -317,7 +317,7 @@ export default function CreateInvoicePage() {
             </div>
           </div>
 
-          <div className="space-y-3 rounded-lg border border-[#e0e4eb] p-4 text-sm">
+          <div className="space-y-3 rounded-lg border border-white/10 p-4 text-sm">
             <TotalRow label="Subtotal" value={money(subtotal)} />
             <TotalRow label="Tax" value={money(tax)} />
             <TotalRow label="Discount" value={`- ${money(discountAmount)}`} />

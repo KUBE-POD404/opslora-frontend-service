@@ -219,7 +219,7 @@ export default function InvoiceViewPage() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-[#e0e4eb] bg-white p-6 shadow-sm">
+      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-6 shadow-[0_16px_50px_rgba(0,0,0,0.16)]">
         <div className="grid gap-8 md:grid-cols-2">
           <section className="space-y-4">
             <div>
@@ -260,7 +260,7 @@ export default function InvoiceViewPage() {
         <Metric label="Total" value={money(invoice.total)} helper={`Subtotal ${money(invoice.subtotal)} + tax ${money(invoice.tax)}`} />
       </div>
 
-      <div className="rounded-lg border border-[#e0e4eb] bg-white">
+      <div className="rounded-lg border border-white/10 bg-white/[0.04]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -299,7 +299,7 @@ export default function InvoiceViewPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <section className="space-y-4 rounded-lg border border-[#e0e4eb] bg-white p-5">
+        <section className="space-y-4 rounded-lg border border-white/10 bg-white/[0.04] p-5">
           <h2 className="text-lg font-semibold">Tax summary</h2>
           <Table>
             <TableHeader>
@@ -323,7 +323,7 @@ export default function InvoiceViewPage() {
           </Table>
         </section>
 
-        <section className="space-y-3 rounded-lg border border-[#e0e4eb] bg-white p-5">
+        <section className="space-y-3 rounded-lg border border-white/10 bg-white/[0.04] p-5">
           <TotalRow label="Subtotal" value={money(invoice.subtotal)} />
           <TotalRow label="Tax" value={money(invoice.tax)} />
           {invoice.discount_type && (
@@ -340,7 +340,7 @@ export default function InvoiceViewPage() {
         </section>
       </div>
 
-      <section className="space-y-3 rounded-lg border border-[#e0e4eb] bg-white p-5">
+      <section className="space-y-3 rounded-lg border border-white/10 bg-white/[0.04] p-5">
         <h2 className="text-lg font-semibold">Payment transactions</h2>
         <div className="rounded-md border">
           <Table>
@@ -400,7 +400,7 @@ export default function InvoiceViewPage() {
 
 function Metric({ label, value, helper }: { label: string; value: string; helper: string }) {
   return (
-    <div className="rounded-lg border border-[#e0e4eb] bg-white p-4">
+    <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
       <p className="text-sm text-[#6b707d]">{label}</p>
       <p className="mt-1 text-2xl font-semibold text-[#12141a]">{value}</p>
       <p className="text-sm text-[#6b707d]">{helper}</p>
@@ -419,7 +419,7 @@ function TotalRow({ label, value, muted = false }: { label: string; value: strin
 
 function TextPanel({ title, value }: { title: string; value?: string | null }) {
   return (
-    <div className="rounded-lg border border-[#e0e4eb] bg-white p-5">
+    <div className="rounded-lg border border-white/10 bg-white/[0.04] p-5">
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-normal text-[#6b707d]">{title}</h2>
       <p className="whitespace-pre-wrap text-sm">{value || "-"}</p>
     </div>
