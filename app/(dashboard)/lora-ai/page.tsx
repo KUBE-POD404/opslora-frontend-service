@@ -153,8 +153,10 @@ function topItems<T>(items: T[], count = 6) {
 }
 
 function summarizeOperationsSnapshot(snapshot: OperationsSnapshot) {
-  const collectibleInvoices = snapshot.invoices.filter((invoice) => ["UNPAID", "PARTIALLY_PAID"].includes(invoice.status))
+  const openInvoiceStatuses = ["UNPAID", "PARTIALLY_PAID", "OVERDUE"]
+  const collectibleInvoices = snapshot.invoices.filter((invoice) => openInvoiceStatuses.includes(invoice.status))
   const overdueInvoices = collectibleInvoices.filter((invoice) => {
+    if (invoice.status === "OVERDUE") return true
     if (!invoice.due_date) return false
     return new Date(invoice.due_date).getTime() < Date.now()
   })
@@ -184,7 +186,7 @@ function summarizeOperationsSnapshot(snapshot: OperationsSnapshot) {
 
 function formatOperationsKnowledge(snapshot: OperationsSnapshot) {
   const summary = summarizeOperationsSnapshot(snapshot)
-  const openInvoices = snapshot.invoices.filter((invoice) => ["UNPAID", "PARTIALLY_PAID"].includes(invoice.status))
+  const openInvoices = snapshot.invoices.filter((invoice) => ["UNPAID", "PARTIALLY_PAID", "OVERDUE"].includes(invoice.status))
   const stockLine = (product: Product) => {
     const stock = snapshot.stockByProduct[product.id]
     return `${product.name} (${product.sku}) on hand ${stock ? stock.quantity_on_hand : "unknown"}, threshold ${stock ? stock.low_stock_threshold : "unknown"}`
@@ -367,7 +369,16 @@ export default function LoraAiPage() {
 
       setNotice(`Operations snapshot saved: ${result.chunks_created} chunk${result.chunks_created === 1 ? "" : "s"}. Asking Lora for a daily briefing...`)
       await askLora(
-        "Using the latest Opslora live operations snapshot, generate today's operating briefing. Treat zero counts as authoritative. Do not invent invoice numbers, customer names, order IDs, products, amounts, or due dates. If no overdue invoices, orders ready to invoice, or low-stock products are listed, say so clearly and recommend monitoring/setup actions only. Keep it concise and cite the snapshot."
+        [
+          "Using the latest Opslora live operations snapshot, generate today's operating briefing.",
+          "Treat the Snapshot facts below as authoritative and more important than general knowledge.",
+          "Do not invent invoice numbers, customer names, order IDs, products, amounts, or due dates.",
+          "If a section says None in the loaded snapshot, say there are no matching items and recommend monitoring/setup actions only.",
+          "Prioritize overdue invoices, confirmed orders ready to invoice, and low-stock risk. Keep it concise and cite the snapshot.",
+          "",
+          "Snapshot facts:",
+          content,
+        ].join("\n")
       )
     } catch (error_) {
       setError(error_ instanceof Error ? error_.message : "Unable to generate operations briefing")
