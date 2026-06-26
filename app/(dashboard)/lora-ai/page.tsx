@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Bot, DatabaseZap, Loader2, MessageSquareText, Send, Sparkles, Wand2 } from "lucide-react"
+import { Bot, ClipboardList, DatabaseZap, Loader2, MessageSquareText, RefreshCw, Send, Sparkles, Wand2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth-context"
+import { apiFetch } from "@/lib/api"
 
 type ProviderHealth = {
   name: string
@@ -49,7 +50,67 @@ type ChatTurn = {
   meta?: string
 }
 
+type Invoice = {
+  id: number
+  invoice_number?: string | null
+  order_id: number
+  customer_name?: string | null
+  total: number
+  status: string
+  due_date?: string | null
+  created_at: string
+}
+
+type Order = {
+  id: number
+  customer_id: number
+  customer_name?: string | null
+  total: number
+  status: string
+  created_at: string
+}
+
+type Customer = {
+  id: number
+  name?: string | null
+  status?: string | null
+}
+
+type Payment = {
+  id: number
+  invoice_id: number
+  amount: number
+  currency?: string | null
+  payment_method?: string | null
+  status: string
+  paid_at: string
+}
+
+type Product = {
+  id: number
+  name: string
+  sku: string
+  is_active: boolean
+}
+
+type StockBalance = {
+  product_id: number
+  quantity_on_hand: number | string
+  low_stock_threshold: number | string
+}
+
+type OperationsSnapshot = {
+  generated_at: string
+  invoices: Invoice[]
+  orders: Order[]
+  customers: Customer[]
+  payments: Payment[]
+  products: Product[]
+  stockByProduct: Record<number, StockBalance>
+}
+
 const promptLibrary = [
+  "Generate today's operating briefing from the latest Opslora snapshot.",
   "Summarize open invoices and list the three most important follow-ups.",
   "Find confirmed orders that are ready to invoice.",
   "Explain which low-stock products could affect active orders.",
@@ -69,7 +130,84 @@ const capabilityCards = [
     title: "Keep citations visible",
     body: "Lora returns snippets from retrieved tenant knowledge so users can see what informed the answer.",
   },
+  {
+    title: "Generate daily briefings",
+    body: "Pull a live customers/orders/invoices/payments/inventory snapshot, save it as context, and ask Lora for priorities.",
+  },
 ]
+
+
+function money(value: number | string | undefined | null) {
+  return `Rs ${Number(value || 0).toFixed(2)}`
+}
+
+function shortDate(value?: string | null) {
+  if (!value) return "-"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+}
+
+function topItems<T>(items: T[], count = 6) {
+  return items.slice(0, count)
+}
+
+function summarizeOperationsSnapshot(snapshot: OperationsSnapshot) {
+  const collectibleInvoices = snapshot.invoices.filter((invoice) => ["UNPAID", "PARTIALLY_PAID"].includes(invoice.status))
+  const overdueInvoices = collectibleInvoices.filter((invoice) => {
+    if (!invoice.due_date) return false
+    return new Date(invoice.due_date).getTime() < Date.now()
+  })
+  const orderIdsWithInvoices = new Set(snapshot.invoices.map((invoice) => invoice.order_id))
+  const ordersToInvoice = snapshot.orders.filter((order) => order.status === "CONFIRMED" && !orderIdsWithInvoices.has(order.id))
+  const draftOrders = snapshot.orders.filter((order) => order.status === "CREATED")
+  const lowStockProducts = snapshot.products.filter((product) => {
+    const stock = snapshot.stockByProduct[product.id]
+    return stock && Number(stock.quantity_on_hand) <= Number(stock.low_stock_threshold)
+  })
+  const successfulPayments = snapshot.payments.filter((payment) => ["SUCCEEDED", "PARTIALLY_REFUNDED", "REFUNDED"].includes(payment.status))
+
+  return {
+    activeCustomers: snapshot.customers.filter((customer) => customer.status !== "INACTIVE").length,
+    openInvoiceCount: collectibleInvoices.length,
+    overdueInvoiceCount: overdueInvoices.length,
+    amountDue: collectibleInvoices.reduce((sum, invoice) => sum + Number(invoice.total || 0), 0),
+    collected: successfulPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0),
+    ordersToInvoiceCount: ordersToInvoice.length,
+    draftOrderCount: draftOrders.length,
+    lowStockCount: lowStockProducts.length,
+    overdueInvoices,
+    ordersToInvoice,
+    lowStockProducts,
+  }
+}
+
+function formatOperationsKnowledge(snapshot: OperationsSnapshot) {
+  const summary = summarizeOperationsSnapshot(snapshot)
+  const stockLine = (product: Product) => {
+    const stock = snapshot.stockByProduct[product.id]
+    return `${product.name} (${product.sku}) on hand ${stock ? stock.quantity_on_hand : "unknown"}, threshold ${stock ? stock.low_stock_threshold : "unknown"}`
+  }
+
+  return [
+    `Opslora live operations snapshot generated at ${snapshot.generated_at}.`,
+    `Active customers: ${summary.activeCustomers}.`,
+    `Open invoices: ${summary.openInvoiceCount}; overdue invoices: ${summary.overdueInvoiceCount}; amount due: ${money(summary.amountDue)}.`,
+    `Collected payments in loaded window: ${money(summary.collected)}.`,
+    `Confirmed orders ready to invoice: ${summary.ordersToInvoiceCount}; draft orders: ${summary.draftOrderCount}.`,
+    `Low-stock products: ${summary.lowStockCount}.`,
+    "Top overdue/open invoices:",
+    ...topItems(summary.overdueInvoices.length ? summary.overdueInvoices : snapshot.invoices.filter((invoice) => ["UNPAID", "PARTIALLY_PAID"].includes(invoice.status))).map((invoice) =>
+      `- Invoice ${invoice.invoice_number ?? invoice.id} for ${invoice.customer_name ?? "unknown customer"}: ${money(invoice.total)}, status ${invoice.status}, due ${shortDate(invoice.due_date)}.`
+    ),
+    "Confirmed orders ready to invoice:",
+    ...topItems(summary.ordersToInvoice).map((order) =>
+      `- Order ${order.id} for ${order.customer_name ?? `customer ${order.customer_id}`}: ${money(order.total)}, created ${shortDate(order.created_at)}.`
+    ),
+    "Low-stock products:",
+    ...topItems(summary.lowStockProducts).map((product) => `- ${stockLine(product)}.`),
+  ].join("\n")
+}
 
 async function aiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`/api/v1/ai${path}`, {
@@ -106,6 +244,8 @@ export default function LoraAiPage() {
   const [chatTurns, setChatTurns] = useState<ChatTurn[]>([])
   const [chatLoading, setChatLoading] = useState(false)
   const [knowledgeLoading, setKnowledgeLoading] = useState(false)
+  const [snapshotLoading, setSnapshotLoading] = useState(false)
+  const [snapshotSummary, setSnapshotSummary] = useState<ReturnType<typeof summarizeOperationsSnapshot> | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -157,6 +297,75 @@ export default function LoraAiPage() {
       setError(exc instanceof Error ? exc.message : "Unable to save knowledge")
     } finally {
       setKnowledgeLoading(false)
+    }
+  }
+
+
+
+  async function loadOperationsSnapshot() {
+    const [invoices, orders, customers, payments, products] = await Promise.all([
+      apiFetch<Invoice[]>("/invoices/?limit=100"),
+      apiFetch<Order[]>("/orders/?limit=100"),
+      apiFetch<Customer[]>("/customers/?limit=100"),
+      apiFetch<Payment[]>("/payments/"),
+      apiFetch<Product[]>("/inventory/products?limit=100"),
+    ])
+
+    const stockResults = await Promise.allSettled(
+      products.map((product) => apiFetch<StockBalance>(`/inventory/stock/${product.id}`))
+    )
+    const stockByProduct: Record<number, StockBalance> = {}
+
+    stockResults.forEach((result, index) => {
+      if (result.status === "fulfilled") {
+        stockByProduct[products[index].id] = result.value
+      }
+    })
+
+    return {
+      generated_at: new Date().toISOString(),
+      invoices,
+      orders,
+      customers,
+      payments,
+      products,
+      stockByProduct,
+    }
+  }
+
+  async function generateDailyBriefing() {
+    setSnapshotLoading(true)
+    setError(null)
+    setNotice(null)
+
+    try {
+      const snapshot = await loadOperationsSnapshot()
+      const summary = summarizeOperationsSnapshot(snapshot)
+      const content = formatOperationsKnowledge(snapshot)
+      setSnapshotSummary(summary)
+
+      const result = await aiFetch<KnowledgeResponse>("/knowledge/sources", {
+        method: "POST",
+        body: JSON.stringify({
+          organization_id: organizationId,
+          user_id: userId,
+          source_type: "operations_snapshot",
+          title: `Opslora operations snapshot ${new Date(snapshot.generated_at).toLocaleString()}`,
+          source_uri: `opslora://frontend/lora-ai/operations-snapshot/${snapshot.generated_at}`,
+          content,
+          visibility_scope: "organization",
+          retention_policy: "short_lived_operations_snapshot",
+        }),
+      })
+
+      setNotice(`Operations snapshot saved: ${result.chunks_created} chunk${result.chunks_created === 1 ? "" : "s"}. Asking Lora for a daily briefing...`)
+      await askLora(
+        "Using the latest Opslora live operations snapshot, generate today's operating briefing. Prioritize overdue invoices, orders ready to invoice, low-stock risk, and the first five actions. Keep it concise and cite the snapshot."
+      )
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "Unable to generate operations briefing")
+    } finally {
+      setSnapshotLoading(false)
     }
   }
 
@@ -329,6 +538,32 @@ export default function LoraAiPage() {
           </section>
 
           <aside className="space-y-5">
+            <section className="rounded-[18px] border border-indigo-300/20 bg-indigo-400/10 p-5 shadow-[0_16px_50px_rgba(0,0,0,0.16)]">
+              <div className="flex items-center gap-3">
+                <ClipboardList className="size-5 text-indigo-200" />
+                <div>
+                  <h2 className="text-lg font-semibold tracking-[-0.03em]">Daily operations briefing</h2>
+                  <p className="text-sm text-indigo-100/75">Pull live Opslora data, save it as Lora context, and ask for the day&apos;s priorities.</p>
+                </div>
+              </div>
+              {snapshotSummary ? (
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Open invoices</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.openInvoiceCount}</div></div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Overdue</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.overdueInvoiceCount}</div></div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">To invoice</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.ordersToInvoiceCount}</div></div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Low stock</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.lowStockCount}</div></div>
+                </div>
+              ) : null}
+              <Button
+                className="mt-5 w-full rounded-2xl bg-indigo-300 text-[#080b18] hover:bg-indigo-200"
+                disabled={snapshotLoading || chatLoading}
+                onClick={generateDailyBriefing}
+              >
+                {snapshotLoading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                Generate briefing from live data
+              </Button>
+            </section>
+
             <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-5 shadow-[0_16px_50px_rgba(0,0,0,0.16)]">
               <div className="flex items-center gap-3">
                 <DatabaseZap className="size-5 text-emerald-300" />
