@@ -184,28 +184,35 @@ function summarizeOperationsSnapshot(snapshot: OperationsSnapshot) {
 
 function formatOperationsKnowledge(snapshot: OperationsSnapshot) {
   const summary = summarizeOperationsSnapshot(snapshot)
+  const openInvoices = snapshot.invoices.filter((invoice) => ["UNPAID", "PARTIALLY_PAID"].includes(invoice.status))
   const stockLine = (product: Product) => {
     const stock = snapshot.stockByProduct[product.id]
     return `${product.name} (${product.sku}) on hand ${stock ? stock.quantity_on_hand : "unknown"}, threshold ${stock ? stock.low_stock_threshold : "unknown"}`
   }
 
+  const overdueLines = topItems(summary.overdueInvoices.length ? summary.overdueInvoices : openInvoices).map((invoice) =>
+    `- Invoice ${invoice.invoice_number ?? invoice.id} for ${invoice.customer_name ?? "unknown customer"}: ${money(invoice.total)}, status ${invoice.status}, due ${shortDate(invoice.due_date)}.`
+  )
+  const orderLines = topItems(summary.ordersToInvoice).map((order) =>
+    `- Order ${order.id} for ${order.customer_name ?? `customer ${order.customer_id}`}: ${money(order.total)}, created ${shortDate(order.created_at)}.`
+  )
+  const lowStockLines = topItems(summary.lowStockProducts).map((product) => `- ${stockLine(product)}.`)
+
   return [
     `Opslora live operations snapshot generated at ${snapshot.generated_at}.`,
+    "This snapshot is authoritative for the loaded organization window. Do not invent invoices, orders, customers, products, amounts, or due dates that are not listed here.",
+    "If a count is zero, say there are no matching items in the loaded snapshot and recommend verification/monitoring actions instead of naming fake records.",
     `Active customers: ${summary.activeCustomers}.`,
     `Open invoices: ${summary.openInvoiceCount}; overdue invoices: ${summary.overdueInvoiceCount}; amount due: ${money(summary.amountDue)}.`,
     `Collected payments in loaded window: ${money(summary.collected)}.`,
     `Confirmed orders ready to invoice: ${summary.ordersToInvoiceCount}; draft orders: ${summary.draftOrderCount}.`,
     `Low-stock products: ${summary.lowStockCount}.`,
     "Top overdue/open invoices:",
-    ...topItems(summary.overdueInvoices.length ? summary.overdueInvoices : snapshot.invoices.filter((invoice) => ["UNPAID", "PARTIALLY_PAID"].includes(invoice.status))).map((invoice) =>
-      `- Invoice ${invoice.invoice_number ?? invoice.id} for ${invoice.customer_name ?? "unknown customer"}: ${money(invoice.total)}, status ${invoice.status}, due ${shortDate(invoice.due_date)}.`
-    ),
+    ...(overdueLines.length ? overdueLines : ["- None in the loaded snapshot."]),
     "Confirmed orders ready to invoice:",
-    ...topItems(summary.ordersToInvoice).map((order) =>
-      `- Order ${order.id} for ${order.customer_name ?? `customer ${order.customer_id}`}: ${money(order.total)}, created ${shortDate(order.created_at)}.`
-    ),
+    ...(orderLines.length ? orderLines : ["- None in the loaded snapshot."]),
     "Low-stock products:",
-    ...topItems(summary.lowStockProducts).map((product) => `- ${stockLine(product)}.`),
+    ...(lowStockLines.length ? lowStockLines : ["- None in the loaded snapshot."]),
   ].join("\n")
 }
 
@@ -360,7 +367,7 @@ export default function LoraAiPage() {
 
       setNotice(`Operations snapshot saved: ${result.chunks_created} chunk${result.chunks_created === 1 ? "" : "s"}. Asking Lora for a daily briefing...`)
       await askLora(
-        "Using the latest Opslora live operations snapshot, generate today's operating briefing. Prioritize overdue invoices, orders ready to invoice, low-stock risk, and the first five actions. Keep it concise and cite the snapshot."
+        "Using the latest Opslora live operations snapshot, generate today's operating briefing. Treat zero counts as authoritative. Do not invent invoice numbers, customer names, order IDs, products, amounts, or due dates. If no overdue invoices, orders ready to invoice, or low-stock products are listed, say so clearly and recommend monitoring/setup actions only. Keep it concise and cite the snapshot."
       )
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "Unable to generate operations briefing")
