@@ -193,9 +193,10 @@ function formatOperationsKnowledge(snapshot: OperationsSnapshot) {
   const overdueLines = topItems(summary.overdueInvoices.length ? summary.overdueInvoices : openInvoices).map((invoice) =>
     `- Invoice ${invoice.invoice_number ?? invoice.id} for ${invoice.customer_name ?? "unknown customer"}: ${money(invoice.total)}, status ${invoice.status}, due ${shortDate(invoice.due_date)}.`
   )
-  const orderLines = topItems(summary.ordersToInvoice).map((order) =>
-    `- Order ${order.id} for ${order.customer_name ?? `customer ${order.customer_id}`}: ${money(order.total)}, created ${shortDate(order.created_at)}.`
-  )
+  const orderLines = topItems(summary.ordersToInvoice).map((order) => {
+    const customerName = order.customer_name ?? `customer ${order.customer_id}`
+    return `- Order ${order.id} for ${customerName}: ${money(order.total)}, created ${shortDate(order.created_at)}.`
+  })
   const lowStockLines = topItems(summary.lowStockProducts).map((product) => `- ${stockLine(product)}.`)
 
   return [
@@ -217,12 +218,12 @@ function formatOperationsKnowledge(snapshot: OperationsSnapshot) {
 }
 
 async function aiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const headers = new Headers(options?.headers)
+  headers.set("Content-Type", "application/json")
+
   const res = await fetch(`/api/v1/ai${path}`, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options?.headers ?? {}),
-    },
+    headers,
   })
 
   if (!res.ok) {
@@ -235,6 +236,37 @@ async function aiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   return res.json()
+}
+
+async function loadOperationsSnapshot() {
+  const [invoices, orders, customers, payments, products] = await Promise.all([
+    apiFetch<Invoice[]>("/invoices/?limit=100"),
+    apiFetch<Order[]>("/orders/?limit=100"),
+    apiFetch<Customer[]>("/customers/?limit=100"),
+    apiFetch<Payment[]>("/payments/"),
+    apiFetch<Product[]>("/inventory/products?limit=100"),
+  ])
+
+  const stockResults = await Promise.allSettled(
+    products.map((product) => apiFetch<StockBalance>(`/inventory/stock/${product.id}`))
+  )
+  const stockByProduct: Record<number, StockBalance> = {}
+
+  stockResults.forEach((result, index) => {
+    if (result.status === "fulfilled") {
+      stockByProduct[products[index].id] = result.value
+    }
+  })
+
+  return {
+    generated_at: new Date().toISOString(),
+    invoices,
+    orders,
+    customers,
+    payments,
+    products,
+    stockByProduct,
+  }
 }
 
 export default function LoraAiPage() {
@@ -268,8 +300,8 @@ export default function LoraAiPage() {
         setProvidersError(null)
         const data = await aiFetch<ProvidersResponse>("/providers")
         if (!cancelled) setProviders(data)
-      } catch (exc) {
-        if (!cancelled) setProvidersError(exc instanceof Error ? exc.message : "Unable to load providers")
+      } catch (error_) {
+        if (!cancelled) setProvidersError(error_ instanceof Error ? error_.message : "Unable to load providers")
       } finally {
         if (!cancelled) setProvidersLoading(false)
       }
@@ -300,45 +332,13 @@ export default function LoraAiPage() {
         }),
       })
       setNotice(`Knowledge saved: ${result.chunks_created} chunk${result.chunks_created === 1 ? "" : "s"} ready for retrieval.`)
-    } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "Unable to save knowledge")
+    } catch (error_) {
+      setError(error_ instanceof Error ? error_.message : "Unable to save knowledge")
     } finally {
       setKnowledgeLoading(false)
     }
   }
 
-
-
-  async function loadOperationsSnapshot() {
-    const [invoices, orders, customers, payments, products] = await Promise.all([
-      apiFetch<Invoice[]>("/invoices/?limit=100"),
-      apiFetch<Order[]>("/orders/?limit=100"),
-      apiFetch<Customer[]>("/customers/?limit=100"),
-      apiFetch<Payment[]>("/payments/"),
-      apiFetch<Product[]>("/inventory/products?limit=100"),
-    ])
-
-    const stockResults = await Promise.allSettled(
-      products.map((product) => apiFetch<StockBalance>(`/inventory/stock/${product.id}`))
-    )
-    const stockByProduct: Record<number, StockBalance> = {}
-
-    stockResults.forEach((result, index) => {
-      if (result.status === "fulfilled") {
-        stockByProduct[products[index].id] = result.value
-      }
-    })
-
-    return {
-      generated_at: new Date().toISOString(),
-      invoices,
-      orders,
-      customers,
-      payments,
-      products,
-      stockByProduct,
-    }
-  }
 
   async function generateDailyBriefing() {
     setSnapshotLoading(true)
@@ -369,8 +369,8 @@ export default function LoraAiPage() {
       await askLora(
         "Using the latest Opslora live operations snapshot, generate today's operating briefing. Treat zero counts as authoritative. Do not invent invoice numbers, customer names, order IDs, products, amounts, or due dates. If no overdue invoices, orders ready to invoice, or low-stock products are listed, say so clearly and recommend monitoring/setup actions only. Keep it concise and cite the snapshot."
       )
-    } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "Unable to generate operations briefing")
+    } catch (error_) {
+      setError(error_ instanceof Error ? error_.message : "Unable to generate operations briefing")
     } finally {
       setSnapshotLoading(false)
     }
@@ -404,16 +404,44 @@ export default function LoraAiPage() {
           role: "assistant",
           content: result.response,
           citations: result.citations,
-          meta: `${result.provider}${result.model ? ` · ${result.model}` : ""}${result.fallback_used ? " · fallback" : ""}`,
+          meta: [result.provider, result.model, result.fallback_used ? "fallback" : null].filter(Boolean).join(" · "),
         },
       ])
-    } catch (exc) {
+    } catch (error_) {
       setChatTurns((turns) => turns.filter((_, index) => index !== turns.length - 1))
-      setError(exc instanceof Error ? exc.message : "Unable to ask Lora")
+      setError(error_ instanceof Error ? error_.message : "Unable to ask Lora")
     } finally {
       setChatLoading(false)
     }
   }
+
+  const providerStatusContent = (() => {
+    if (providersLoading) {
+      return (
+        <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-[#cbd5e1]">
+          <Loader2 className="size-4 animate-spin" /> Checking providers...
+        </div>
+      )
+    }
+
+    if (providersError) {
+      return (
+        <div className="rounded-2xl border border-rose-300/25 bg-rose-400/10 p-4 text-sm text-rose-200">{providersError}</div>
+      )
+    }
+
+    return providers?.providers.map((provider) => (
+      <div key={provider.name} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-sm">
+        <div>
+          <div className="font-medium text-[#f7f8fb]">{provider.name}</div>
+          <div className="text-xs text-[#8790a0]">{provider.detail ?? (provider.configured ? "configured" : "not configured")}</div>
+        </div>
+        <span className={provider.available ? "text-emerald-300" : "text-rose-300"}>
+          {provider.available ? "online" : "offline"}
+        </span>
+      </div>
+    ))
+  })()
 
   return (
     <div className="-m-4 min-h-[calc(100svh-var(--header-height))] bg-[#070b16] p-4 text-[#f7f8fb] md:p-6">
@@ -440,25 +468,7 @@ export default function LoraAiPage() {
                 <Sparkles className="size-5 text-indigo-300" />
               </div>
               <div className="mt-5 space-y-2">
-                {providersLoading ? (
-                  <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-[#cbd5e1]">
-                    <Loader2 className="size-4 animate-spin" /> Checking providers...
-                  </div>
-                ) : providersError ? (
-                  <div className="rounded-2xl border border-rose-300/25 bg-rose-400/10 p-4 text-sm text-rose-200">{providersError}</div>
-                ) : (
-                  providers?.providers.map((provider) => (
-                    <div key={provider.name} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-sm">
-                      <div>
-                        <div className="font-medium text-[#f7f8fb]">{provider.name}</div>
-                        <div className="text-xs text-[#8790a0]">{provider.detail ?? (provider.configured ? "configured" : "not configured")}</div>
-                      </div>
-                      <span className={provider.available ? "text-emerald-300" : "text-rose-300"}>
-                        {provider.available ? "online" : "offline"}
-                      </span>
-                    </div>
-                  ))
-                )}
+                {providerStatusContent}
               </div>
             </aside>
           </div>
