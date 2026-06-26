@@ -109,6 +109,24 @@ type OperationsSnapshot = {
   stockByProduct: Record<number, StockBalance>
 }
 
+type OperationsBriefingResponse = {
+  summary: {
+    active_customers: number
+    open_invoice_count: number
+    overdue_invoice_count: number
+    amount_due: number
+    collected: number
+    orders_to_invoice_count: number
+    draft_order_count: number
+    low_stock_count: number
+  }
+  overdue_invoices: Invoice[]
+  orders_ready_to_invoice: Order[]
+  low_stock_products: Array<{ product: Product; stock: StockBalance }>
+  prompt_context: string
+  recommended_actions: string[]
+}
+
 const promptLibrary = [
   "Generate today's operating briefing from the latest Opslora snapshot.",
   "Summarize open invoices and list the three most important follow-ups.",
@@ -186,6 +204,23 @@ function summarizeOperationsSnapshot(snapshot: OperationsSnapshot) {
     ordersToInvoice,
     lowStockProducts,
     lowStockDetails,
+  }
+}
+
+function briefingToSnapshotSummary(briefing: OperationsBriefingResponse) {
+  return {
+    activeCustomers: briefing.summary.active_customers,
+    openInvoiceCount: briefing.summary.open_invoice_count,
+    overdueInvoiceCount: briefing.summary.overdue_invoice_count,
+    amountDue: briefing.summary.amount_due,
+    collected: briefing.summary.collected,
+    ordersToInvoiceCount: briefing.summary.orders_to_invoice_count,
+    draftOrderCount: briefing.summary.draft_order_count,
+    lowStockCount: briefing.summary.low_stock_count,
+    overdueInvoices: briefing.overdue_invoices,
+    ordersToInvoice: briefing.orders_ready_to_invoice,
+    lowStockProducts: briefing.low_stock_products.map((item) => item.product),
+    lowStockDetails: briefing.low_stock_products,
   }
 }
 
@@ -354,9 +389,16 @@ export default function LoraAiPage() {
 
     try {
       const snapshot = await loadOperationsSnapshot()
-      const summary = summarizeOperationsSnapshot(snapshot)
-      const content = formatOperationsKnowledge(snapshot)
-      setSnapshotSummary(summary)
+      const briefing = await aiFetch<OperationsBriefingResponse>("/operations/briefing", {
+        method: "POST",
+        body: JSON.stringify({
+          ...snapshot,
+          stock_by_product: snapshot.stockByProduct,
+          stockByProduct: undefined,
+        }),
+      })
+      const content = briefing.prompt_context
+      setSnapshotSummary(briefingToSnapshotSummary(briefing))
 
       const result = await aiFetch<KnowledgeResponse>("/knowledge/sources", {
         method: "POST",
