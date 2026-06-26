@@ -167,6 +167,10 @@ function summarizeOperationsSnapshot(snapshot: OperationsSnapshot) {
     const stock = snapshot.stockByProduct[product.id]
     return stock && Number(stock.quantity_on_hand) <= Number(stock.low_stock_threshold)
   })
+  const lowStockDetails = lowStockProducts.map((product) => ({
+    product,
+    stock: snapshot.stockByProduct[product.id],
+  }))
   const successfulPayments = snapshot.payments.filter((payment) => ["SUCCEEDED", "PARTIALLY_REFUNDED", "REFUNDED"].includes(payment.status))
 
   return {
@@ -181,6 +185,7 @@ function summarizeOperationsSnapshot(snapshot: OperationsSnapshot) {
     overdueInvoices,
     ordersToInvoice,
     lowStockProducts,
+    lowStockDetails,
   }
 }
 
@@ -575,11 +580,51 @@ export default function LoraAiPage() {
                 </div>
               </div>
               {snapshotSummary ? (
-                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Open invoices</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.openInvoiceCount}</div></div>
-                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Overdue</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.overdueInvoiceCount}</div></div>
-                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">To invoice</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.ordersToInvoiceCount}</div></div>
-                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Low stock</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.lowStockCount}</div></div>
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-3 text-xs text-emerald-50">
+                    <div className="font-semibold uppercase tracking-[0.08em] text-emerald-200/80">Deterministic snapshot summary</div>
+                    <p className="mt-1 leading-5 text-emerald-50/80">
+                      These metrics come directly from Opslora APIs before Lora writes commentary. Treat this panel as the source of truth for counts and amounts.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Active customers</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.activeCustomers}</div></div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Amount due</div><div className="mt-1 text-lg font-semibold">{money(snapshotSummary.amountDue)}</div></div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Open invoices</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.openInvoiceCount}</div></div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Overdue</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.overdueInvoiceCount}</div></div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">To invoice</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.ordersToInvoiceCount}</div></div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Low stock</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.lowStockCount}</div></div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-[#d9e2ee]">
+                    <div className="font-semibold text-[#f7f8fb]">Top overdue/open invoices</div>
+                    {snapshotSummary.overdueInvoices.length ? (
+                      <ul className="mt-2 space-y-1">
+                        {topItems(snapshotSummary.overdueInvoices, 3).map((invoice) => (
+                          <li key={invoice.id}>Invoice {invoice.invoice_number ?? invoice.id} · {invoice.customer_name ?? "unknown customer"} · {money(invoice.total)} · {invoice.status}</li>
+                        ))}
+                      </ul>
+                    ) : <p className="mt-2 text-[#8790a0]">None in the loaded snapshot.</p>}
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-[#d9e2ee]">
+                    <div className="font-semibold text-[#f7f8fb]">Confirmed orders ready to invoice</div>
+                    {snapshotSummary.ordersToInvoice.length ? (
+                      <ul className="mt-2 space-y-1">
+                        {topItems(snapshotSummary.ordersToInvoice, 3).map((order) => (
+                          <li key={order.id}>Order {order.id} · {order.customer_name ?? `customer ${order.customer_id}`} · {money(order.total)}</li>
+                        ))}
+                      </ul>
+                    ) : <p className="mt-2 text-[#8790a0]">None in the loaded snapshot.</p>}
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-[#d9e2ee]">
+                    <div className="font-semibold text-[#f7f8fb]">Low-stock products</div>
+                    {snapshotSummary.lowStockDetails.length ? (
+                      <ul className="mt-2 space-y-1">
+                        {topItems(snapshotSummary.lowStockDetails, 3).map(({ product, stock }) => (
+                          <li key={product.id}>{product.name} · {product.sku} · on hand {stock.quantity_on_hand} / threshold {stock.low_stock_threshold}</li>
+                        ))}
+                      </ul>
+                    ) : <p className="mt-2 text-[#8790a0]">None in the loaded snapshot.</p>}
+                  </div>
                 </div>
               ) : null}
               <Button
