@@ -202,7 +202,7 @@ function normalizeMarkdownLines(content: string) {
       return line.split("\n")
     })
     .map((line) => line.trim())
-    .filter(Boolean)
+    .filter((line) => line.length > 0 && line !== "#")
 }
 
 function parseNumberedLine(line: string) {
