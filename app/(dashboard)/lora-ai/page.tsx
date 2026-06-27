@@ -221,8 +221,11 @@ function briefingToSnapshotSummary(briefing: OperationsBriefingResponse) {
     ordersToInvoice: briefing.orders_ready_to_invoice,
     lowStockProducts: briefing.low_stock_products.map((item) => item.product),
     lowStockDetails: briefing.low_stock_products,
+    recommendedActions: briefing.recommended_actions,
   }
 }
+
+type SnapshotSummary = ReturnType<typeof briefingToSnapshotSummary>
 
 function formatOperationsKnowledge(snapshot: OperationsSnapshot) {
   const summary = summarizeOperationsSnapshot(snapshot)
@@ -326,7 +329,7 @@ export default function LoraAiPage() {
   const [chatLoading, setChatLoading] = useState(false)
   const [knowledgeLoading, setKnowledgeLoading] = useState(false)
   const [snapshotLoading, setSnapshotLoading] = useState(false)
-  const [snapshotSummary, setSnapshotSummary] = useState<ReturnType<typeof summarizeOperationsSnapshot> | null>(null)
+  const [snapshotSummary, setSnapshotSummary] = useState<SnapshotSummary | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -636,6 +639,17 @@ export default function LoraAiPage() {
                     <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Overdue</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.overdueInvoiceCount}</div></div>
                     <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">To invoice</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.ordersToInvoiceCount}</div></div>
                     <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Low stock</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.lowStockCount}</div></div>
+                  </div>
+                  <div className="rounded-2xl border border-amber-300/20 bg-amber-400/10 p-3 text-xs leading-5 text-amber-50">
+                    <div className="font-semibold text-amber-100">Recommended actions</div>
+                    <p className="mt-1 text-amber-50/75">
+                      Deterministic next steps from the structured briefing endpoint. Use these before Lora prose if the model wording conflicts.
+                    </p>
+                    <ul className="mt-2 space-y-1">
+                      {snapshotSummary.recommendedActions.map((action) => (
+                        <li key={action}>• {action}</li>
+                      ))}
+                    </ul>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-[#d9e2ee]">
                     <div className="font-semibold text-[#f7f8fb]">Top overdue/open invoices</div>
