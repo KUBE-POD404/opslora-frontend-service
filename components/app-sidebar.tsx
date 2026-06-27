@@ -113,6 +113,10 @@ const data = {
           url: "/settings/portal",
         },
         {
+          title: "Lora AI consent",
+          url: "/settings/lora-ai",
+        },
+        {
           title: "Profile Settings",
           url: "/settings/profile",
         },

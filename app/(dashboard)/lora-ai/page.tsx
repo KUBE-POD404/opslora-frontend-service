@@ -1,11 +1,13 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Bot, ClipboardList, Loader2, MessageSquareText, RefreshCw, Send, Sparkles } from "lucide-react"
+import { Bot, ClipboardList, Loader2, MessageSquareText, RefreshCw, Send, ShieldCheck, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
 import { apiFetch } from "@/lib/api"
+import type { OrganizationSettings } from "@/lib/organization-settings"
+
 
 type ProviderHealth = {
   name: string
@@ -98,16 +100,6 @@ type StockBalance = {
   low_stock_threshold: number | string
 }
 
-type OperationsSnapshot = {
-  generated_at: string
-  invoices: Invoice[]
-  orders: Order[]
-  customers: Customer[]
-  payments: Payment[]
-  products: Product[]
-  stockByProduct: Record<number, StockBalance>
-}
-
 type OperationsBriefingResponse = {
   summary: {
     active_customers: number
@@ -139,12 +131,6 @@ function money(value: number | string | undefined | null) {
   return `Rs ${Number(value || 0).toFixed(2)}`
 }
 
-function shortDate(value?: string | null) {
-  if (!value) return "-"
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-}
 
 function topItems<T>(items: T[], count = 6) {
   return items.slice(0, count)
@@ -249,42 +235,6 @@ function MarkdownMessage({ content }: Readonly<{ content: string }>) {
   )
 }
 
-function summarizeOperationsSnapshot(snapshot: OperationsSnapshot) {
-  const openInvoiceStatuses = new Set(["UNPAID", "PARTIALLY_PAID", "OVERDUE"])
-  const collectibleInvoices = snapshot.invoices.filter((invoice) => openInvoiceStatuses.has(invoice.status))
-  const overdueInvoices = collectibleInvoices.filter((invoice) => {
-    if (invoice.status === "OVERDUE") return true
-    if (!invoice.due_date) return false
-    return new Date(invoice.due_date).getTime() < Date.now()
-  })
-  const orderIdsWithInvoices = new Set(snapshot.invoices.map((invoice) => invoice.order_id))
-  const ordersToInvoice = snapshot.orders.filter((order) => order.status === "CONFIRMED" && !orderIdsWithInvoices.has(order.id))
-  const draftOrders = snapshot.orders.filter((order) => order.status === "CREATED")
-  const lowStockProducts = snapshot.products.filter((product) => {
-    const stock = snapshot.stockByProduct[product.id]
-    return stock && Number(stock.quantity_on_hand) <= Number(stock.low_stock_threshold)
-  })
-  const lowStockDetails = lowStockProducts.map((product) => ({
-    product,
-    stock: snapshot.stockByProduct[product.id],
-  }))
-  const successfulPayments = snapshot.payments.filter((payment) => ["SUCCEEDED", "PARTIALLY_REFUNDED", "REFUNDED"].includes(payment.status))
-
-  return {
-    activeCustomers: snapshot.customers.filter((customer) => customer.status !== "INACTIVE").length,
-    openInvoiceCount: collectibleInvoices.length,
-    overdueInvoiceCount: overdueInvoices.length,
-    amountDue: collectibleInvoices.reduce((sum, invoice) => sum + Number(invoice.total || 0), 0),
-    collected: successfulPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0),
-    ordersToInvoiceCount: ordersToInvoice.length,
-    draftOrderCount: draftOrders.length,
-    lowStockCount: lowStockProducts.length,
-    overdueInvoices,
-    ordersToInvoice,
-    lowStockProducts,
-    lowStockDetails,
-  }
-}
 
 function briefingToSnapshotSummary(briefing: OperationsBriefingResponse) {
   return {
@@ -306,41 +256,7 @@ function briefingToSnapshotSummary(briefing: OperationsBriefingResponse) {
 
 type SnapshotSummary = ReturnType<typeof briefingToSnapshotSummary>
 
-function formatOperationsKnowledge(snapshot: OperationsSnapshot) {
-  const summary = summarizeOperationsSnapshot(snapshot)
-  const openInvoiceStatuses = new Set(["UNPAID", "PARTIALLY_PAID", "OVERDUE"])
-  const openInvoices = snapshot.invoices.filter((invoice) => openInvoiceStatuses.has(invoice.status))
-  const stockLine = (product: Product) => {
-    const stock = snapshot.stockByProduct[product.id]
-    return `${product.name} (${product.sku}) on hand ${stock ? stock.quantity_on_hand : "unknown"}, threshold ${stock ? stock.low_stock_threshold : "unknown"}`
-  }
 
-  const overdueLines = topItems(summary.overdueInvoices.length ? summary.overdueInvoices : openInvoices).map((invoice) =>
-    `- Invoice ${invoice.invoice_number ?? invoice.id} for ${invoice.customer_name ?? "unknown customer"}: ${money(invoice.total)}, status ${invoice.status}, due ${shortDate(invoice.due_date)}.`
-  )
-  const orderLines = topItems(summary.ordersToInvoice).map((order) => {
-    const customerName = order.customer_name ?? `customer ${order.customer_id}`
-    return `- Order ${order.id} for ${customerName}: ${money(order.total)}, created ${shortDate(order.created_at)}.`
-  })
-  const lowStockLines = topItems(summary.lowStockProducts).map((product) => `- ${stockLine(product)}.`)
-
-  return [
-    `Opslora live operations snapshot generated at ${snapshot.generated_at}.`,
-    "This snapshot is authoritative for the loaded organization window. Do not invent invoices, orders, customers, products, amounts, or due dates that are not listed here.",
-    "If a count is zero, say there are no matching items in the loaded snapshot and recommend verification/monitoring actions instead of naming fake records.",
-    `Active customers: ${summary.activeCustomers}.`,
-    `Open invoices: ${summary.openInvoiceCount}; overdue invoices: ${summary.overdueInvoiceCount}; amount due: ${money(summary.amountDue)}.`,
-    `Collected payments in loaded window: ${money(summary.collected)}.`,
-    `Confirmed orders ready to invoice: ${summary.ordersToInvoiceCount}; draft orders: ${summary.draftOrderCount}.`,
-    `Low-stock products: ${summary.lowStockCount}.`,
-    "Top overdue/open invoices:",
-    ...(overdueLines.length ? overdueLines : ["- None in the loaded snapshot."]),
-    "Confirmed orders ready to invoice:",
-    ...(orderLines.length ? orderLines : ["- None in the loaded snapshot."]),
-    "Low-stock products:",
-    ...(lowStockLines.length ? lowStockLines : ["- None in the loaded snapshot."]),
-  ].join("\n")
-}
 
 async function aiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const headers = new Headers(options?.headers)
@@ -394,8 +310,123 @@ async function loadOperationsSnapshot() {
   }
 }
 
-export default function LoraAiPage() {
+
+
+function canUserManageLoraConsent(user: ReturnType<typeof useAuth>["user"]) {
+  const hasSettingsPermission = user?.permissions?.includes("organization.settings.update")
+  const hasAdminRole = user?.roles?.some((role) => ["OWNER", "ADMIN"].includes(role.toUpperCase()))
+  return Boolean(hasSettingsPermission || hasAdminRole)
+}
+
+function toOrganizationId(user: ReturnType<typeof useAuth>["user"]) {
+  return String(user?.org_id ?? user?.organization_slug ?? "demo-org")
+}
+
+function toUserId(user: ReturnType<typeof useAuth>["user"]) {
+  return String(user?.user_id ?? user?.email ?? "demo-user")
+}
+
+function ProviderStatusContent({
+  loraConsentEnabled,
+  providersLoading,
+  providersError,
+  providers,
+}: Readonly<{
+  loraConsentEnabled: boolean
+  providersLoading: boolean
+  providersError: string | null
+  providers: ProvidersResponse | null
+}>) {
+  if (!loraConsentEnabled) {
+    return (
+      <div className="rounded-2xl border border-amber-300/25 bg-amber-400/10 p-4 text-sm leading-6 text-amber-100">
+        Provider checks are paused until an admin enables Lora AI consent.
+      </div>
+    )
+  }
+
+  if (providersLoading) {
+    return (
+      <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-[#cbd5e1]">
+        <Loader2 className="size-4 animate-spin" /> Checking providers...
+      </div>
+    )
+  }
+
+  if (providersError) {
+    return (
+      <div className="rounded-2xl border border-rose-300/25 bg-rose-400/10 p-4 text-sm text-rose-200">{providersError}</div>
+    )
+  }
+
+  return providers?.providers.map((provider) => (
+    <div key={provider.name} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-sm">
+      <div>
+        <div className="font-medium text-[#f7f8fb]">{provider.name}</div>
+        <div className="text-xs text-[#8790a0]">{provider.detail ?? (provider.configured ? "configured" : "not configured")}</div>
+      </div>
+      <span className={provider.available ? "text-emerald-300" : "text-rose-300"}>
+        {provider.available ? "online" : "offline"}
+      </span>
+    </div>
+  ))
+}
+
+function LoraConsentGate({
+  canManageLoraConsent,
+  consentSaving,
+  organizationSettingsLoaded,
+  onEnableConsent,
+}: Readonly<{
+  canManageLoraConsent: boolean
+  consentSaving: boolean
+  organizationSettingsLoaded: boolean
+  onEnableConsent: () => void
+}>) {
+  return (
+    <section className="rounded-[18px] border border-amber-300/25 bg-amber-400/10 p-6 shadow-[0_16px_50px_rgba(0,0,0,0.16)]">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-3xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-200/30 bg-amber-100/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-amber-100">
+            <ShieldCheck className="size-4" /> Admin consent required
+          </div>
+          <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-amber-50">Lora AI is off for this organization.</h2>
+          <p className="mt-3 text-sm leading-7 text-amber-50/80">
+            To use Ask Lora or generate AI briefings, an admin must consent to share organization data with Lora AI. Until then, this page will not send live Opslora data, save operations snapshots, or call Lora chat for this organization.
+          </p>
+          <ul className="mt-4 space-y-2 text-sm leading-6 text-amber-50/75">
+            <li>• Data that may be shared after consent: customers, orders, invoices, payments, products, inventory stock, and generated operations snapshots.</li>
+            <li>• Consent is organization-wide and can be turned off later from Settings → Lora AI consent.</li>
+            <li>• Existing deterministic app pages still work without Lora AI.</li>
+          </ul>
+        </div>
+        <div className="w-full rounded-2xl border border-amber-200/20 bg-[#080b18]/60 p-4 lg:w-80">
+          {canManageLoraConsent ? (
+            <>
+              <p className="text-sm leading-6 text-amber-50/80">As an admin, you can enable Lora AI for this organization.</p>
+              <Button
+                className="mt-4 w-full rounded-2xl bg-amber-200 text-[#17120a] hover:bg-amber-100"
+                disabled={consentSaving || !organizationSettingsLoaded}
+                onClick={onEnableConsent}
+              >
+                {consentSaving ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
+                I consent, enable Lora AI
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm leading-6 text-amber-50/80">Ask an organization admin to enable Lora AI consent in Settings → Lora AI consent.</p>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+export default function LoraAiPage() { // NOSONAR - page orchestrates consent, provider status, and chat state; complex UI is split into child components
   const { user } = useAuth()
+  const [organizationSettings, setOrganizationSettings] = useState<OrganizationSettings | null>(null)
+  const [settingsLoading, setSettingsLoading] = useState(true)
+  const [consentSaving, setConsentSaving] = useState(false)
   const [providers, setProviders] = useState<ProvidersResponse | null>(null)
   const [providersError, setProvidersError] = useState<string | null>(null)
   const [providersLoading, setProvidersLoading] = useState(true)
@@ -408,8 +439,32 @@ export default function LoraAiPage() {
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const organizationId = useMemo(() => String(user?.org_id ?? user?.organization_slug ?? "demo-org"), [user])
-  const userId = useMemo(() => String(user?.user_id ?? user?.email ?? "demo-user"), [user])
+  const organizationId = useMemo(() => toOrganizationId(user), [user])
+  const userId = useMemo(() => toUserId(user), [user])
+  const loraConsentEnabled = Boolean(organizationSettings?.lora_ai_enabled)
+  const canManageLoraConsent = useMemo(() => canUserManageLoraConsent(user), [user])
+
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadOrganizationSettings() {
+      try {
+        setSettingsLoading(true)
+        const settings = await apiFetch<OrganizationSettings>("/settings/organization")
+        if (!cancelled) setOrganizationSettings(settings)
+      } catch (error_) {
+        if (!cancelled) setError(error_ instanceof Error ? error_.message : "Unable to load Lora AI consent settings")
+      } finally {
+        if (!cancelled) setSettingsLoading(false)
+      }
+    }
+
+    loadOrganizationSettings()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -427,14 +482,26 @@ export default function LoraAiPage() {
       }
     }
 
+    if (settingsLoading || !loraConsentEnabled) {
+      setProvidersLoading(false)
+      return () => {
+        cancelled = true
+      }
+    }
+
     loadProviders()
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [loraConsentEnabled, settingsLoading])
 
 
   async function generateDailyBriefing() {
+    if (!loraConsentEnabled) {
+      setError("Lora AI is disabled until an admin consents to share organization data with Lora AI.")
+      return
+    }
+
     setSnapshotLoading(true)
     setError(null)
     setNotice(null)
@@ -487,6 +554,11 @@ export default function LoraAiPage() {
   }
 
   async function askLora(nextMessage = message) {
+    if (!loraConsentEnabled) {
+      setError("Lora AI is disabled until an admin consents to share organization data with Lora AI.")
+      return
+    }
+
     const cleanMessage = nextMessage.trim()
     if (!cleanMessage) return
 
@@ -525,33 +597,33 @@ export default function LoraAiPage() {
     }
   }
 
-  const providerStatusContent = (() => {
-    if (providersLoading) {
-      return (
-        <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-[#cbd5e1]">
-          <Loader2 className="size-4 animate-spin" /> Checking providers...
-        </div>
-      )
-    }
 
-    if (providersError) {
-      return (
-        <div className="rounded-2xl border border-rose-300/25 bg-rose-400/10 p-4 text-sm text-rose-200">{providersError}</div>
-      )
-    }
+  async function enableLoraConsent() {
+    if (!organizationSettings || !canManageLoraConsent) return
 
-    return providers?.providers.map((provider) => (
-      <div key={provider.name} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-sm">
-        <div>
-          <div className="font-medium text-[#f7f8fb]">{provider.name}</div>
-          <div className="text-xs text-[#8790a0]">{provider.detail ?? (provider.configured ? "configured" : "not configured")}</div>
-        </div>
-        <span className={provider.available ? "text-emerald-300" : "text-rose-300"}>
-          {provider.available ? "online" : "offline"}
-        </span>
-      </div>
-    ))
-  })()
+    setConsentSaving(true)
+    setError(null)
+    setNotice(null)
+
+    try {
+      const updated = await apiFetch<OrganizationSettings>("/settings/organization", {
+        method: "PUT",
+        body: JSON.stringify({
+          ...organizationSettings,
+          lora_ai_enabled: true,
+          organization_id: undefined,
+          lora_ai_consent_at: undefined,
+          lora_ai_consent_by_user_id: undefined,
+        }),
+      })
+      setOrganizationSettings(updated)
+      setNotice("Lora AI consent enabled for this organization. Ask Lora and live operations briefings are now available.")
+    } catch (error_) {
+      setError(error_ instanceof Error ? error_.message : "Unable to enable Lora AI consent")
+    } finally {
+      setConsentSaving(false)
+    }
+  }
 
   return (
     <div className="-m-4 min-h-[calc(100svh-var(--header-height))] bg-[#070b16] p-4 text-[#f7f8fb] md:p-6">
@@ -563,10 +635,10 @@ export default function LoraAiPage() {
                 <Bot className="size-4" /> Lora AI workspace
               </div>
               <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-none tracking-[-0.06em] text-balance md:text-5xl">
-                Ask Lora to help with operational work.
+                Opt in before Lora AI can use organization data.
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-[#9aa4b2] md:text-base">
-                Lora stays in this dedicated assistant page. Ask questions, generate operating briefings, and review the deterministic facts behind each answer.
+                Lora AI is disabled by default. An organization admin must consent before Opslora shares live customers, orders, invoices, payments, inventory, or snapshots with Lora AI.
               </p>
             </div>
             <aside className="border-t border-white/10 bg-[#0d1220] p-5 lg:border-l lg:border-t-0 md:p-7">
@@ -578,7 +650,12 @@ export default function LoraAiPage() {
                 <Sparkles className="size-5 text-indigo-300" />
               </div>
               <div className="mt-5 space-y-2">
-                {providerStatusContent}
+                <ProviderStatusContent
+                  loraConsentEnabled={loraConsentEnabled}
+                  providersLoading={providersLoading}
+                  providersError={providersError}
+                  providers={providers}
+                />
               </div>
             </aside>
           </div>
@@ -590,6 +667,23 @@ export default function LoraAiPage() {
           </div>
         )}
 
+
+        {settingsLoading ? (
+          <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-5 text-sm text-[#cbd5e1]">
+            <div className="flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> Loading Lora AI consent settings...</div>
+          </section>
+        ) : null}
+
+        {!settingsLoading && !loraConsentEnabled ? (
+          <LoraConsentGate
+            canManageLoraConsent={canManageLoraConsent}
+            consentSaving={consentSaving}
+            organizationSettingsLoaded={Boolean(organizationSettings)}
+            onEnableConsent={enableLoraConsent}
+          />
+        ) : null}
+
+        {loraConsentEnabled ? (
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
           <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-5 shadow-[0_16px_50px_rgba(0,0,0,0.16)]">
             <div className="flex items-center gap-3">
@@ -744,6 +838,7 @@ export default function LoraAiPage() {
 
           </aside>
         </div>
+        ) : null}
       </div>
     </div>
   )

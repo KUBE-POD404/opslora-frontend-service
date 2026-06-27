@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react"
-import { Building2, FileText, Globe2, Landmark, Save, ToggleLeft } from "lucide-react"
+import { Bot, Building2, FileText, Globe2, Landmark, Save, ShieldCheck, ToggleLeft } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -9,36 +9,7 @@ import { Field, FieldContent, FieldGroup, FieldLabel, FieldTitle } from "@/compo
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { apiFetch } from "@/lib/api"
-
-type OrganizationSettings = {
-  organization_id: number
-  legal_name: string | null
-  display_name: string | null
-  logo_url: string | null
-  address: string | null
-  phone: string | null
-  email: string | null
-  website: string | null
-  country: string | null
-  state: string | null
-  tax_id: string | null
-  gstin: string | null
-  tax_registration_type: string | null
-  default_tax_mode: string | null
-  invoice_prefix: string
-  next_invoice_sequence: number
-  default_due_days: number
-  default_invoice_terms: string | null
-  default_invoice_footer: string | null
-  round_off_enabled: boolean
-  default_invoice_template: string | null
-  inventory_enabled: boolean
-  gst_invoice_enabled: boolean
-  customer_portal_enabled: boolean
-  online_payments_enabled: boolean
-  multi_warehouse_enabled: boolean
-  advanced_reports_enabled: boolean
-}
+import type { OrganizationSettings } from "@/lib/organization-settings"
 
 type OrganizationSettingsForm = Omit<OrganizationSettings, "organization_id"> & {
   legal_name: string
@@ -67,7 +38,7 @@ type FeatureFlag = {
   is_enabled: boolean
 }
 
-type SettingsSection = "business" | "tax" | "invoice" | "features" | "portal"
+type SettingsSection = "business" | "tax" | "invoice" | "features" | "portal" | "lora"
 
 const defaultSettings: OrganizationSettingsForm = {
   legal_name: "",
@@ -96,6 +67,9 @@ const defaultSettings: OrganizationSettingsForm = {
   online_payments_enabled: false,
   multi_warehouse_enabled: false,
   advanced_reports_enabled: false,
+  lora_ai_enabled: false,
+  lora_ai_consent_at: null,
+  lora_ai_consent_by_user_id: null,
 }
 
 const capabilityToggles: Array<{
@@ -157,6 +131,13 @@ const sectionCopy: Record<
     panelDescription: "Portal controls stay focused on customer-visible behavior.",
     icon: <Globe2 className="h-4 w-4" />,
   },
+  lora: {
+    title: "Lora AI consent",
+    description: "Admin-controlled consent before Opslora data is shared with Lora AI for assistant features.",
+    panelTitle: "Consent to use Lora AI",
+    panelDescription: "Lora AI stays disabled until an admin explicitly consents for this organization.",
+    icon: <ShieldCheck className="h-4 w-4" />,
+  },
 }
 
 function settingsToForm(settings: OrganizationSettings): OrganizationSettingsForm {
@@ -187,6 +168,9 @@ function settingsToForm(settings: OrganizationSettings): OrganizationSettingsFor
     online_payments_enabled: settings.online_payments_enabled,
     multi_warehouse_enabled: settings.multi_warehouse_enabled,
     advanced_reports_enabled: settings.advanced_reports_enabled,
+    lora_ai_enabled: Boolean(settings.lora_ai_enabled),
+    lora_ai_consent_at: settings.lora_ai_consent_at ?? null,
+    lora_ai_consent_by_user_id: settings.lora_ai_consent_by_user_id ?? null,
   }
 }
 
@@ -223,10 +207,20 @@ function formToPayload(form: OrganizationSettingsForm) {
     online_payments_enabled: form.online_payments_enabled,
     multi_warehouse_enabled: form.multi_warehouse_enabled,
     advanced_reports_enabled: form.advanced_reports_enabled,
+    lora_ai_enabled: form.lora_ai_enabled,
   }
 }
 
-export function OrganizationSettingsClient({ section }: { section: SettingsSection }) {
+function formatLoraConsentStatus(form: OrganizationSettingsForm) {
+  if (!form.lora_ai_enabled) {
+    return "Disabled. The /lora-ai page will not show Ask Lora or send live organization data until an admin enables consent."
+  }
+
+  const enabledAt = form.lora_ai_consent_at ? ` on ${new Date(form.lora_ai_consent_at).toLocaleString()}` : ""
+  return `Enabled${enabledAt}. Ask Lora and operations briefings are available.`
+}
+
+export function OrganizationSettingsClient({ section }: Readonly<{ section: SettingsSection }>) {
   const copy = sectionCopy[section]
   const [initialForm, setInitialForm] = useState<OrganizationSettingsForm>(defaultSettings)
   const [form, setForm] = useState<OrganizationSettingsForm>(defaultSettings)
@@ -419,6 +413,31 @@ export function OrganizationSettingsClient({ section }: { section: SettingsSecti
             </div>
           </FieldGroup>
         ) : null}
+
+        {section === "lora" ? (
+          <FieldGroup>
+            <div className="rounded-lg border border-amber-300/30 bg-amber-50/80 p-4 text-sm leading-6 text-amber-950">
+              <div className="flex items-start gap-3">
+                <Bot className="mt-0.5 h-5 w-5 text-amber-700" />
+                <div>
+                  <div className="font-semibold">Lora AI is opt-in for each organization.</div>
+                  <p className="mt-1 text-xs text-amber-900/80">
+                    When enabled, Opslora may send organization operations data such as customers, orders, invoices, payments, inventory, and generated snapshots to the Lora AI service so it can answer questions and prepare briefings. Keep this off if the organization has not consented.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <ToggleSwitch
+              id="lora_ai_enabled"
+              title="I consent to share this organization&apos;s Opslora data with Lora AI for assistant features"
+              checked={form.lora_ai_enabled}
+              onCheckedChange={(checked) => updateForm("lora_ai_enabled", checked)}
+            />
+            <p className="text-xs leading-5 text-[#6b707d]">
+              {formatLoraConsentStatus(form)}
+            </p>
+          </FieldGroup>
+        ) : null}
       </section>
     </form>
   )
@@ -431,14 +450,14 @@ function TextField({
   onChange,
   placeholder,
   type = "text",
-}: {
+}: Readonly<{
   id: string
   label: string
   value: string
   onChange: (value: string) => void
   placeholder?: string
   type?: string
-}) {
+}>) {
   return (
     <Field>
       <FieldLabel htmlFor={id} className="text-xs font-medium text-[#12141a]">
@@ -464,14 +483,14 @@ function NumberField({
   onChange,
   min,
   max,
-}: {
+}: Readonly<{
   id: string
   label: string
   value: number
   onChange: (value: number) => void
   min?: number
   max?: number
-}) {
+}>) {
   return (
     <Field>
       <FieldLabel htmlFor={id} className="text-xs font-medium text-[#12141a]">
@@ -496,12 +515,12 @@ function ToggleSwitch({
   title,
   checked,
   onCheckedChange,
-}: {
+}: Readonly<{
   id: string
   title: string
   checked: boolean
   onCheckedChange: (checked: boolean) => void
-}) {
+}>) {
   return (
     <Field orientation="horizontal" className="items-center gap-3">
       <button
