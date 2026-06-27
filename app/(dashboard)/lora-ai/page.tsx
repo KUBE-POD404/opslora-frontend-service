@@ -1,10 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Bot, ClipboardList, DatabaseZap, Loader2, MessageSquareText, RefreshCw, Send, Sparkles, Wand2 } from "lucide-react"
+import { Bot, ClipboardList, Loader2, MessageSquareText, RefreshCw, Send, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth-context"
 import { apiFetch } from "@/lib/api"
 
@@ -135,25 +134,6 @@ const promptLibrary = [
   "Draft customer follow-up messages for overdue invoices.",
 ]
 
-const capabilityCards = [
-  {
-    title: "Ask operations questions",
-    body: "Use plain English to ask about receivables, order follow-ups, stock risk, or next actions.",
-  },
-  {
-    title: "Add tenant knowledge",
-    body: "Paste operating notes, customer context, policy snippets, or daily priorities for Lora to cite.",
-  },
-  {
-    title: "Keep citations visible",
-    body: "Lora returns snippets from retrieved tenant knowledge so users can see what informed the answer.",
-  },
-  {
-    title: "Generate daily briefings",
-    body: "Pull a live customers/orders/invoices/payments/inventory snapshot, save it as context, and ask Lora for priorities.",
-  },
-]
-
 
 function money(value: number | string | undefined | null) {
   return `Rs ${Number(value || 0).toFixed(2)}`
@@ -170,9 +150,108 @@ function topItems<T>(items: T[], count = 6) {
   return items.slice(0, count)
 }
 
+function renderInlineMarkdown(text: string) {
+  const nodes: React.ReactNode[] = []
+  let remaining = text
+  let index = 0
+
+  while (remaining.length > 0) {
+    const start = remaining.indexOf("**")
+    if (start === -1) {
+      nodes.push(<span key={`text-${index}`}>{remaining}</span>)
+      break
+    }
+
+    if (start > 0) {
+      nodes.push(<span key={`text-${index}`}>{remaining.slice(0, start)}</span>)
+      index += 1
+    }
+
+    const afterStart = start + 2
+    const end = remaining.indexOf("**", afterStart)
+    if (end === -1) {
+      nodes.push(<span key={`text-${index}`}>{remaining.slice(start)}</span>)
+      break
+    }
+
+    nodes.push(
+      <strong key={`strong-${index}`} className="font-semibold text-[#f7f8fb]">
+        {remaining.slice(afterStart, end)}
+      </strong>
+    )
+    index += 1
+    remaining = remaining.slice(end + 2)
+  }
+
+  return nodes
+}
+
+function addLineBreakBeforeMarker(text: string, marker: string) {
+  return text.split(marker).join(`\n${marker}`)
+}
+
+function normalizeMarkdownLines(content: string) {
+  return content
+    .replaceAll("\r\n", "\n")
+    .split("\n")
+    .flatMap((rawLine) => {
+      let line = rawLine
+      for (const marker of ["### ", "## ", "1. **", "2. **", "3. **", "4. **", "5. **", "- **"]) {
+        line = addLineBreakBeforeMarker(line, marker)
+      }
+      return line.split("\n")
+    })
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+function parseNumberedLine(line: string) {
+  const dotIndex = line.indexOf(". ")
+  if (dotIndex <= 0) return null
+  const numberText = line.slice(0, dotIndex)
+  if (!Array.from(numberText).every((char) => char >= "0" && char <= "9")) return null
+  return { number: numberText, body: line.slice(dotIndex + 2) }
+}
+
+function MarkdownMessage({ content }: Readonly<{ content: string }>) {
+  const lines = normalizeMarkdownLines(content)
+
+  return (
+    <div className="space-y-3">
+      {lines.map((line, index) => {
+        if (line.startsWith("### ") || line.startsWith("## ")) {
+          const heading = line.startsWith("### ") ? line.slice(4) : line.slice(3)
+          return <h3 key={`${line}-${index}`} className="text-sm font-semibold uppercase tracking-[0.06em] text-indigo-100">{renderInlineMarkdown(heading)}</h3>
+        }
+
+        const numbered = parseNumberedLine(line)
+        if (numbered) {
+          return (
+            <div key={`${line}-${index}`} className="flex gap-2">
+              <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-indigo-400/20 text-[11px] font-semibold text-indigo-100">{numbered.number}</span>
+              <p>{renderInlineMarkdown(numbered.body)}</p>
+            </div>
+          )
+        }
+
+        if (line.startsWith("- ") || line.startsWith("• ")) {
+          return (
+            <div key={`${line}-${index}`} className="flex gap-2">
+              <span className="mt-2 size-1.5 shrink-0 rounded-full bg-indigo-200" />
+              <p>{renderInlineMarkdown(line.slice(2))}</p>
+            </div>
+          )
+        }
+
+        return <p key={`${line}-${index}`}>{renderInlineMarkdown(line)}</p>
+      })}
+    </div>
+  )
+}
+
 function summarizeOperationsSnapshot(snapshot: OperationsSnapshot) {
-  const openInvoiceStatuses = ["UNPAID", "PARTIALLY_PAID", "OVERDUE"]
-  const collectibleInvoices = snapshot.invoices.filter((invoice) => openInvoiceStatuses.includes(invoice.status))
+  const openInvoiceStatuses = new Set(["UNPAID", "PARTIALLY_PAID", "OVERDUE"])
+  const collectibleInvoices = snapshot.invoices.filter((invoice) => openInvoiceStatuses.has(invoice.status))
   const overdueInvoices = collectibleInvoices.filter((invoice) => {
     if (invoice.status === "OVERDUE") return true
     if (!invoice.due_date) return false
@@ -229,7 +308,8 @@ type SnapshotSummary = ReturnType<typeof briefingToSnapshotSummary>
 
 function formatOperationsKnowledge(snapshot: OperationsSnapshot) {
   const summary = summarizeOperationsSnapshot(snapshot)
-  const openInvoices = snapshot.invoices.filter((invoice) => ["UNPAID", "PARTIALLY_PAID", "OVERDUE"].includes(invoice.status))
+  const openInvoiceStatuses = new Set(["UNPAID", "PARTIALLY_PAID", "OVERDUE"])
+  const openInvoices = snapshot.invoices.filter((invoice) => openInvoiceStatuses.has(invoice.status))
   const stockLine = (product: Product) => {
     const stock = snapshot.stockByProduct[product.id]
     return `${product.name} (${product.sku}) on hand ${stock ? stock.quantity_on_hand : "unknown"}, threshold ${stock ? stock.low_stock_threshold : "unknown"}`
@@ -321,13 +401,8 @@ export default function LoraAiPage() {
   const [providersLoading, setProvidersLoading] = useState(true)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [message, setMessage] = useState(promptLibrary[0])
-  const [knowledgeTitle, setKnowledgeTitle] = useState("Opslora operating note")
-  const [knowledgeContent, setKnowledgeContent] = useState(
-    "Example: This week prioritize overdue invoices, confirmed orders without invoices, and low-stock products that can block fulfilment."
-  )
   const [chatTurns, setChatTurns] = useState<ChatTurn[]>([])
   const [chatLoading, setChatLoading] = useState(false)
-  const [knowledgeLoading, setKnowledgeLoading] = useState(false)
   const [snapshotLoading, setSnapshotLoading] = useState(false)
   const [snapshotSummary, setSnapshotSummary] = useState<SnapshotSummary | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -357,32 +432,6 @@ export default function LoraAiPage() {
       cancelled = true
     }
   }, [])
-
-  async function ingestKnowledge() {
-    setKnowledgeLoading(true)
-    setError(null)
-    setNotice(null)
-
-    try {
-      const result = await aiFetch<KnowledgeResponse>("/knowledge/sources", {
-        method: "POST",
-        body: JSON.stringify({
-          organization_id: organizationId,
-          user_id: userId,
-          source_type: "text",
-          title: knowledgeTitle,
-          source_uri: "opslora://frontend/lora-ai/manual-note",
-          content: knowledgeContent,
-          visibility_scope: "organization",
-        }),
-      })
-      setNotice(`Knowledge saved: ${result.chunks_created} chunk${result.chunks_created === 1 ? "" : "s"} ready for retrieval.`)
-    } catch (error_) {
-      setError(error_ instanceof Error ? error_.message : "Unable to save knowledge")
-    } finally {
-      setKnowledgeLoading(false)
-    }
-  }
 
 
   async function generateDailyBriefing() {
@@ -517,7 +566,7 @@ export default function LoraAiPage() {
                 Ask Lora to help with operational work.
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-[#9aa4b2] md:text-base">
-                Lora stays in this dedicated assistant page. Add operating knowledge, ask questions, and review citations without adding assistant panels to every workflow page.
+                Lora stays in this dedicated assistant page. Ask questions, generate operating briefings, and review the deterministic facts behind each answer.
               </p>
             </div>
             <aside className="border-t border-white/10 bg-[#0d1220] p-5 lg:border-l lg:border-t-0 md:p-7">
@@ -547,7 +596,7 @@ export default function LoraAiPage() {
               <MessageSquareText className="size-5 text-indigo-300" />
               <div>
                 <h2 className="text-lg font-semibold tracking-[-0.03em]">Ask Lora</h2>
-                <p className="text-sm text-[#8790a0]">Chat against the current organization context and any knowledge you add below.</p>
+                <p className="text-sm text-[#8790a0]">Ask Lora about the current organization context and the latest operations snapshot.</p>
               </div>
             </div>
 
@@ -555,13 +604,13 @@ export default function LoraAiPage() {
               {chatTurns.length === 0 ? (
                 <div className="flex min-h-64 flex-col items-center justify-center text-center text-sm text-[#8790a0]">
                   <Bot className="mb-3 size-8 text-indigo-300" />
-                  Add a note or choose a prompt to start a Lora conversation.
+                  Choose a prompt or ask Lora what needs attention today.
                 </div>
               ) : (
                 chatTurns.map((turn, index) => (
                   <div key={`${turn.role}-${index}`} className={turn.role === "user" ? "ml-auto max-w-[85%]" : "mr-auto max-w-[90%]"}>
                     <div className={turn.role === "user" ? "rounded-2xl bg-[#3f46d8] p-4 text-sm leading-6 text-white" : "rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm leading-6 text-[#d9e2ee]"}>
-                      {turn.content}
+                      {turn.role === "assistant" ? <MarkdownMessage content={turn.content} /> : turn.content}
                     </div>
                     {turn.meta ? <div className="mt-1 px-2 text-xs text-[#8790a0]">{turn.meta}</div> : null}
                     {turn.citations && turn.citations.length > 0 ? (
@@ -693,55 +742,6 @@ export default function LoraAiPage() {
               </Button>
             </section>
 
-            <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-5 shadow-[0_16px_50px_rgba(0,0,0,0.16)]">
-              <div className="flex items-center gap-3">
-                <DatabaseZap className="size-5 text-emerald-300" />
-                <div>
-                  <h2 className="text-lg font-semibold tracking-[-0.03em]">Add knowledge</h2>
-                  <p className="text-sm text-[#8790a0]">Save a note for this organization and let Lora cite it in answers.</p>
-                </div>
-              </div>
-              <div className="mt-5 space-y-3">
-                <Input
-                  value={knowledgeTitle}
-                  onChange={(event) => setKnowledgeTitle(event.target.value)}
-                  className="border-white/10 bg-white/[0.04] text-[#f7f8fb]"
-                  placeholder="Knowledge title"
-                />
-                <textarea
-                  value={knowledgeContent}
-                  onChange={(event) => setKnowledgeContent(event.target.value)}
-                  className="min-h-44 w-full rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm leading-6 text-[#f7f8fb] outline-none placeholder:text-[#8790a0] focus:border-emerald-300/40"
-                  placeholder="Paste operating context, customer notes, collection priorities, stock rules, or policy snippets."
-                />
-                <Button
-                  className="w-full rounded-2xl bg-emerald-500/90 text-[#04120b] hover:bg-emerald-400"
-                  disabled={knowledgeLoading}
-                  onClick={ingestKnowledge}
-                >
-                  {knowledgeLoading ? <Loader2 className="size-4 animate-spin" /> : <DatabaseZap className="size-4" />}
-                  Save knowledge
-                </Button>
-              </div>
-            </section>
-
-            <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-5 shadow-[0_16px_50px_rgba(0,0,0,0.16)]">
-              <div className="flex items-center gap-3">
-                <Wand2 className="size-5 text-emerald-300" />
-                <div>
-                  <h2 className="text-lg font-semibold tracking-[-0.03em]">Enabled capabilities</h2>
-                  <p className="text-sm text-[#8790a0]">First Lora slice, live in the app.</p>
-                </div>
-              </div>
-              <div className="mt-5 space-y-2">
-                {capabilityCards.map((item) => (
-                  <div key={item.title} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-sm text-[#d9e2ee]">
-                    <div className="font-medium text-[#f7f8fb]">{item.title}</div>
-                    <div className="mt-1 leading-6 text-[#8790a0]">{item.body}</div>
-                  </div>
-                ))}
-              </div>
-            </section>
           </aside>
         </div>
       </div>
