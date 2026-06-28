@@ -32,6 +32,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Switch } from "@/components/ui/switch"
 import { apiFetch } from "@/lib/api"
 import { type CurrentUser, useAuth } from "@/lib/auth-context"
 
@@ -225,14 +226,14 @@ export default function ProfileSettingsPage() {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[#121317] sm:text-[28px]">Profile Settings</h1>
-          <p className="mt-1 max-w-3xl text-sm text-[#636973]">
+          <h1 className="text-2xl font-semibold text-foreground sm:text-[28px]">Profile Settings</h1>
+          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
             Manage your signed-in user profile, preferences, and account security.
             Organization settings stay separate.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge className="border-[#b8d1fa] bg-[#e8f2ff] text-[#255cd4] hover:bg-[#e8f2ff]">
+          <Badge className="border-blue-300/40 bg-blue-500/10 text-blue-600 dark:text-blue-200">
             User scope
           </Badge>
           <Button
@@ -244,14 +245,14 @@ export default function ProfileSettingsPage() {
           >
             Discard
           </Button>
-          <Button form="profile-form" className="h-9 rounded-md bg-[#181c24] text-white hover:bg-[#262a33]" disabled={saving}>
+          <Button form="profile-form" className="h-9 rounded-md bg-primary text-primary-foreground hover:bg-[#262a33]" disabled={saving}>
             <Save className="h-4 w-4" />
             {saving ? "Saving..." : "Save changes"}
           </Button>
         </div>
       </div>
 
-      <Card className="rounded-lg border-[#e3e4e8]">
+      <Card className="rounded-lg border">
         <CardContent className="grid gap-5 pt-0 lg:grid-cols-[minmax(0,1fr)_minmax(320px,520px)] lg:items-center">
           <div className="flex items-center gap-4">
             <div className="flex size-16 items-center justify-center rounded-full bg-[#181c24] text-lg font-semibold text-white">
@@ -259,20 +260,20 @@ export default function ProfileSettingsPage() {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-xl font-semibold text-[#121317]">{displayName}</h2>
+                <h2 className="text-xl font-semibold text-foreground">{displayName}</h2>
                 {profile?.roles.map((role) => (
-                  <Badge key={role} className="border-[#b8e5c7] bg-[#e8f9f0] text-[#1a8557] hover:bg-[#e8f9f0]">
+                  <Badge key={role} className="border-emerald-300/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200">
                     {role}
                   </Badge>
                 ))}
-                <Badge className="border-[#f0c770] bg-[#fff6db] text-[#b86b0d] hover:bg-[#fff6db]">
+                <Badge className="border-amber-300/40 bg-amber-500/10 text-amber-700 dark:text-amber-200">
                   2FA ready
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">{profile?.email}</p>
             </div>
           </div>
-          <p className="text-sm leading-5 text-[#636973]">
+          <p className="text-sm leading-5 text-muted-foreground">
             This page changes the current user only. Business identity, invoice settings,
             and feature flags remain in Organization Settings.
           </p>
@@ -281,7 +282,7 @@ export default function ProfileSettingsPage() {
 
       <form id="profile-form" onSubmit={handleSave}>
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card className="rounded-lg border-[#e3e4e8]">
+          <Card className="rounded-lg border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserRound className="h-4 w-4" />
@@ -337,7 +338,7 @@ export default function ProfileSettingsPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-lg border-[#e3e4e8]">
+          <Card className="rounded-lg border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
@@ -375,7 +376,7 @@ export default function ProfileSettingsPage() {
       </form>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <Card className="rounded-lg border-[#e3e4e8]">
+        <Card className="rounded-lg border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
@@ -418,7 +419,7 @@ export default function ProfileSettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-lg border-[#e3e4e8]">
+        <Card className="rounded-lg border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" />
@@ -482,7 +483,7 @@ export default function ProfileSettingsPage() {
         </Card>
       </div>
 
-      <Card className="rounded-lg border-[#e3e4e8]">
+      <Card className="rounded-lg border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Laptop className="h-4 w-4" />
@@ -531,14 +532,8 @@ function PreferenceToggle({
   onCheckedChange: (checked: boolean) => void
 }) {
   return (
-    <Field orientation="horizontal" className="rounded-lg border p-4">
-      <input
-        id={id}
-        type="checkbox"
-        className="mt-1 h-4 w-4 accent-primary"
-        checked={checked}
-        onChange={(e) => onCheckedChange(e.target.checked)}
-      />
+    <Field orientation="horizontal" className="items-center rounded-lg border bg-card p-4 text-card-foreground">
+      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
       <FieldContent>
         <FieldTitle>{title}</FieldTitle>
         <FieldDescription>{description}</FieldDescription>

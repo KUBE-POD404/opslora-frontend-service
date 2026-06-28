@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Bot, ClipboardList, Loader2, RefreshCw, Send, ShieldCheck, Sparkles } from "lucide-react"
+import { Bot, Loader2, MessageSquarePlus, PanelLeft, Send, ShieldCheck } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/lib/auth-context"
-import { apiFetch } from "@/lib/api"
+import { apiFetch, getStoredTokens } from "@/lib/api"
 import type { OrganizationSettings } from "@/lib/organization-settings"
 
 
@@ -49,6 +50,13 @@ type ChatTurn = {
   content: string
   citations?: Citation[]
   meta?: string
+}
+
+type ChatSession = {
+  id: string
+  title: string
+  conversationId: string | null
+  turns: ChatTurn[]
 }
 
 type Invoice = {
@@ -117,20 +125,6 @@ type OperationsBriefingResponse = {
   prompt_context: string
   recommended_actions: string[]
 }
-
-const promptLibrary = [
-  "Generate today's operating briefing from the latest Opslora snapshot.",
-  "Summarize open invoices and list the three most important follow-ups.",
-  "Find confirmed orders that are ready to invoice.",
-  "Explain which low-stock products could affect active orders.",
-  "Draft customer follow-up messages for overdue invoices.",
-]
-
-
-function money(value: number | string | undefined | null) {
-  return `Rs ${Number(value || 0).toFixed(2)}`
-}
-
 
 
 function renderInlineMarkdown(text: string) {
@@ -233,31 +227,12 @@ function MarkdownMessage({ content }: Readonly<{ content: string }>) {
 }
 
 
-function briefingToSnapshotSummary(briefing: OperationsBriefingResponse) {
-  return {
-    activeCustomers: briefing.summary.active_customers,
-    openInvoiceCount: briefing.summary.open_invoice_count,
-    overdueInvoiceCount: briefing.summary.overdue_invoice_count,
-    amountDue: briefing.summary.amount_due,
-    collected: briefing.summary.collected,
-    ordersToInvoiceCount: briefing.summary.orders_to_invoice_count,
-    draftOrderCount: briefing.summary.draft_order_count,
-    lowStockCount: briefing.summary.low_stock_count,
-    overdueInvoices: briefing.overdue_invoices,
-    ordersToInvoice: briefing.orders_ready_to_invoice,
-    lowStockProducts: briefing.low_stock_products.map((item) => item.product),
-    lowStockDetails: briefing.low_stock_products,
-    recommendedActions: briefing.recommended_actions,
-  }
-}
-
-type SnapshotSummary = ReturnType<typeof briefingToSnapshotSummary>
-
-
 
 async function aiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const headers = new Headers(options?.headers)
   headers.set("Content-Type", "application/json")
+  const token = getStoredTokens().accessToken
+  if (token) headers.set("Authorization", `Bearer ${token}`)
 
   const res = await fetch(`/api/v1/ai${path}`, {
     ...options,
@@ -323,66 +298,20 @@ function toUserId(user: ReturnType<typeof useAuth>["user"]) {
   return String(user?.user_id ?? user?.email ?? "demo-user")
 }
 
-function ProviderStatusContent({
-  loraConsentEnabled,
-  providersLoading,
-  providersError,
-  providers,
-}: Readonly<{
-  loraConsentEnabled: boolean
-  providersLoading: boolean
-  providersError: string | null
-  providers: ProvidersResponse | null
-}>) {
-  if (!loraConsentEnabled) {
-    return (
-      <div className="rounded-2xl border border-amber-300/25 bg-amber-400/10 p-4 text-sm leading-6 text-amber-100">
-        Provider checks are paused until an admin enables Lora AI consent.
-      </div>
-    )
-  }
-
-  if (providersLoading) {
-    return (
-      <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-[#cbd5e1]">
-        <Loader2 className="size-4 animate-spin" /> Checking providers...
-      </div>
-    )
-  }
-
-  if (providersError) {
-    return (
-      <div className="rounded-2xl border border-rose-300/25 bg-rose-400/10 p-4 text-sm text-rose-200">{providersError}</div>
-    )
-  }
-
-  return providers?.providers.map((provider) => (
-    <div key={provider.name} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-sm">
-      <div>
-        <div className="font-medium text-[#f7f8fb]">{provider.name}</div>
-        <div className="text-xs text-[#8790a0]">{provider.detail ?? (provider.configured ? "configured" : "not configured")}</div>
-      </div>
-      <span className={provider.available ? "text-emerald-300" : "text-rose-300"}>
-        {provider.available ? "online" : "offline"}
-      </span>
-    </div>
-  ))
-}
-
 export default function LoraAiPage() { // NOSONAR - page orchestrates consent, provider status, and chat state; complex UI is split into child components
   const { user } = useAuth()
   const [organizationSettings, setOrganizationSettings] = useState<OrganizationSettings | null>(null)
   const [settingsLoading, setSettingsLoading] = useState(true)
   const [consentSaving, setConsentSaving] = useState(false)
   const [providers, setProviders] = useState<ProvidersResponse | null>(null)
-  const [providersError, setProvidersError] = useState<string | null>(null)
-  const [providersLoading, setProvidersLoading] = useState(true)
   const [conversationId, setConversationId] = useState<string | null>(null)
-  const [message, setMessage] = useState(promptLibrary[0])
+  const [message, setMessage] = useState("")
   const [chatTurns, setChatTurns] = useState<ChatTurn[]>([])
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([])
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [historyOpen, setHistoryOpen] = useState(true)
+  const [selectedProvider, setSelectedProvider] = useState("ollama")
   const [chatLoading, setChatLoading] = useState(false)
-  const [snapshotLoading, setSnapshotLoading] = useState(false)
-  const [snapshotSummary, setSnapshotSummary] = useState<SnapshotSummary | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -418,19 +347,17 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
 
     async function loadProviders() {
       try {
-        setProvidersLoading(true)
-        setProvidersError(null)
         const data = await aiFetch<ProvidersResponse>("/providers")
-        if (!cancelled) setProviders(data)
-      } catch (error_) {
-        if (!cancelled) setProvidersError(error_ instanceof Error ? error_.message : "Unable to load providers")
-      } finally {
-        if (!cancelled) setProvidersLoading(false)
+        if (!cancelled) {
+          setProviders(data)
+          setSelectedProvider(data.primary || data.providers[0]?.name || "ollama")
+        }
+      } catch {
+        if (!cancelled) setSelectedProvider("ollama")
       }
     }
 
     if (settingsLoading || !loraConsentEnabled) {
-      setProvidersLoading(false)
       return () => {
         cancelled = true
       }
@@ -449,7 +376,6 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
       return
     }
 
-    setSnapshotLoading(true)
     setError(null)
     setNotice(null)
 
@@ -464,7 +390,6 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
         }),
       })
       const content = briefing.prompt_context
-      setSnapshotSummary(briefingToSnapshotSummary(briefing))
 
       const result = await aiFetch<KnowledgeResponse>("/knowledge/sources", {
         method: "POST",
@@ -496,8 +421,36 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
     } catch (error_) {
       setError(error_ instanceof Error ? error_.message : "Unable to generate operations briefing")
     } finally {
-      setSnapshotLoading(false)
     }
+  }
+
+  function upsertSession(nextConversationId: string | null, turns: ChatTurn[]) {
+    const sessionId = activeSessionId ?? nextConversationId ?? `local-${Date.now()}`
+    const title = turns.find((turn) => turn.role === "user")?.content.slice(0, 56) || "New chat"
+    setActiveSessionId(sessionId)
+    setChatSessions((sessions) => {
+      const next = { id: sessionId, title, conversationId: nextConversationId, turns }
+      const others = sessions.filter((session) => session.id !== sessionId)
+      return [next, ...others].slice(0, 12)
+    })
+  }
+
+  function startNewChat() {
+    setActiveSessionId(null)
+    setConversationId(null)
+    setChatTurns([])
+    setMessage("")
+    setNotice(null)
+    setError(null)
+  }
+
+  function openSession(session: ChatSession) {
+    setActiveSessionId(session.id)
+    setConversationId(session.conversationId)
+    setChatTurns(session.turns)
+    setMessage("")
+    setNotice(null)
+    setError(null)
   }
 
   async function askLora(nextMessage = message) {
@@ -508,12 +461,19 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
 
     const cleanMessage = nextMessage.trim()
     if (!cleanMessage) return
+    if (cleanMessage === "/briefing") {
+      setMessage("")
+      await generateDailyBriefing()
+      return
+    }
 
     setChatLoading(true)
     setError(null)
     setNotice(null)
-    setMessage(cleanMessage)
-    setChatTurns((turns) => [...turns, { role: "user", content: cleanMessage }])
+    setMessage("")
+    const userTurn: ChatTurn = { role: "user", content: cleanMessage }
+    const optimisticTurns = [...chatTurns, userTurn]
+    setChatTurns(optimisticTurns)
 
     try {
       const result = await aiFetch<ChatResponse>("/chat", {
@@ -524,20 +484,24 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
           message: cleanMessage,
           conversation_id: conversationId,
           use_fallback: true,
+          preferred_provider: selectedProvider,
         }),
       })
-      setConversationId(result.conversation_id ?? null)
-      setChatTurns((turns) => [
-        ...turns,
+      const nextConversationId = result.conversation_id ?? null
+      setConversationId(nextConversationId)
+      const finalTurns: ChatTurn[] = [
+        ...optimisticTurns,
         {
           role: "assistant",
           content: result.response,
           citations: result.citations,
           meta: [result.provider, result.model, result.fallback_used ? "fallback" : null].filter(Boolean).join(" · "),
         },
-      ])
+      ]
+      setChatTurns(finalTurns)
+      upsertSession(nextConversationId, finalTurns)
     } catch (error_) {
-      setChatTurns((turns) => turns.filter((_, index) => index !== turns.length - 1))
+      setChatTurns(chatTurns)
       setError(error_ instanceof Error ? error_.message : "Unable to ask Lora")
     } finally {
       setChatLoading(false)
@@ -573,75 +537,96 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
   }
 
   return (
-    <div className="-m-4 min-h-[calc(100svh-var(--header-height))] bg-[#050814] p-3 text-[#f7f8fb] md:p-5">
-      <div className="mx-auto grid max-w-7xl gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="flex min-h-[calc(100svh-var(--header-height)-2.5rem)] flex-col overflow-hidden rounded-[22px] border border-white/10 bg-[#080c18] shadow-[0_18px_70px_rgba(0,0,0,0.32)]">
-          <header className="flex flex-col gap-3 border-b border-white/10 bg-white/[0.025] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-2xl border border-indigo-300/20 bg-indigo-400/10 text-indigo-200">
-                <Bot className="size-5" />
-              </div>
-              <div>
-                <h1 className="text-base font-semibold tracking-[-0.02em] text-[#f7f8fb]">Lora AI terminal</h1>
-                <p className="text-xs text-[#8790a0]">Hermes CLI feel, ChatGPT-style conversation, Opslora-aware answers.</p>
-              </div>
+    <div className="-m-4 flex h-[calc(100svh-var(--header-height))] overflow-hidden bg-background text-foreground">
+      {historyOpen ? (
+        <aside className="hidden w-72 shrink-0 border-r bg-muted/35 p-3 md:flex md:flex-col">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-sm font-semibold">Lora</div>
+            <Button variant="ghost" size="icon-sm" onClick={startNewChat} title="New chat">
+              <MessageSquarePlus className="size-4" />
+            </Button>
+          </div>
+          <div className="space-y-1 overflow-y-auto scrollbar-quiet">
+            {chatSessions.length === 0 ? (
+              <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">No conversations yet.</div>
+            ) : chatSessions.map((session) => (
+              <button
+                key={session.id}
+                type="button"
+                onClick={() => openSession(session)}
+                className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${activeSessionId === session.id ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground"}`}
+              >
+                <span className="line-clamp-2">{session.title}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+      ) : null}
+
+      <section className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-3">
+          <Button variant="ghost" size="icon-sm" onClick={() => setHistoryOpen((open) => !open)} title="Toggle conversation history">
+            <PanelLeft className="size-4" />
+          </Button>
+          <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+            <SelectTrigger className="h-9 w-44">
+              <SelectValue placeholder="Provider" />
+            </SelectTrigger>
+            <SelectContent>
+              {(providers?.providers.length ? providers.providers : [{ name: selectedProvider, configured: true, available: true }]).map((provider) => (
+                <SelectItem key={provider.name} value={provider.name}>{provider.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+            <span className={loraConsentEnabled ? "size-2 rounded-full bg-emerald-500" : "size-2 rounded-full bg-amber-500"} />
+            {loraConsentEnabled ? "Enabled" : "Locked"}
+          </div>
+        </header>
+
+        {(notice || error) && (
+          <div className={`mx-4 mt-3 rounded-lg border p-3 text-sm ${error ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"}`}>
+            {error ?? notice}
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto p-4 scrollbar-quiet">
+          {settingsLoading ? (
+            <div className="inline-flex items-center gap-2 rounded-lg border bg-card p-4 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Loading Lora...</div>
+          ) : null}
+
+          {!settingsLoading && !loraConsentEnabled ? (
+            <div className="mx-auto mt-10 max-w-xl rounded-xl border bg-card p-5 text-sm leading-6 text-card-foreground shadow-sm">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground"><ShieldCheck className="size-4" /> Admin consent needed</div>
+              <h2 className="mt-3 text-xl font-semibold">Lora is locked for this organization.</h2>
+              <p className="mt-2 text-muted-foreground">Enable consent before organization data is shared with Lora AI.</p>
+              {canManageLoraConsent ? (
+                <Button className="mt-4" disabled={consentSaving || !organizationSettings} onClick={enableLoraConsent}>
+                  {consentSaving ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
+                  Enable Lora AI
+                </Button>
+              ) : null}
             </div>
-            <div className="flex items-center gap-2 text-xs text-[#9aa4b2]">
-              <span className={loraConsentEnabled ? "size-2 rounded-full bg-emerald-300" : "size-2 rounded-full bg-amber-300"} />
-              {loraConsentEnabled ? "Organization data enabled" : "Chat locked until admin consent"}
+          ) : null}
+
+          {loraConsentEnabled && chatTurns.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              <Bot className="mr-2 size-5" /> Lora is ready.
             </div>
-          </header>
+          ) : null}
 
-          {(notice || error) && (
-            <div className={`mx-4 mt-4 rounded-2xl border p-3 text-sm ${error ? "border-rose-300/25 bg-rose-400/10 text-rose-200" : "border-emerald-300/25 bg-emerald-400/10 text-emerald-200"}`}>
-              {error ?? notice}
-            </div>
-          )}
-
-          <div className="flex-1 space-y-4 overflow-y-auto p-4">
-            {settingsLoading ? (
-              <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-[#cbd5e1]"><Loader2 className="size-4 animate-spin" /> Loading Lora AI settings...</div>
-            ) : null}
-
-            {!settingsLoading && !loraConsentEnabled ? (
-              <div className="mx-auto mt-8 max-w-2xl rounded-[20px] border border-amber-300/20 bg-amber-400/10 p-5 text-sm leading-6 text-amber-50">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] text-amber-100"><ShieldCheck className="size-4" /> Admin consent needed</div>
-                <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-amber-50">Lora is ready, but organization data sharing is off.</h2>
-                <p className="mt-2 text-amber-50/75">Enable consent only when this organization is ready to share Opslora customers, orders, invoices, payments, inventory, and operations snapshots with Lora AI.</p>
-                {canManageLoraConsent ? (
-                  <Button
-                    className="mt-4 rounded-2xl bg-amber-200 text-[#17120a] hover:bg-amber-100"
-                    disabled={consentSaving || !organizationSettings}
-                    onClick={enableLoraConsent}
-                  >
-                    {consentSaving ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
-                    Enable Lora AI for this organization
-                  </Button>
-                ) : (
-                  <p className="mt-4 text-xs text-amber-50/70">Ask an organization admin to enable Lora AI in Settings.</p>
-                )}
-              </div>
-            ) : null}
-
-            {loraConsentEnabled && chatTurns.length === 0 ? (
-              <div className="mx-auto mt-10 max-w-2xl text-center">
-                <div className="mx-auto flex size-14 items-center justify-center rounded-[20px] border border-indigo-300/20 bg-indigo-400/10 text-indigo-200"><Sparkles className="size-6" /></div>
-                <h2 className="mt-4 text-3xl font-semibold tracking-[-0.05em] text-[#f7f8fb]">Ask Lora what needs attention.</h2>
-                <p className="mt-2 text-sm leading-6 text-[#9aa4b2]">Use the prompt line below like a terminal, or generate a live operations briefing first.</p>
-              </div>
-            ) : null}
-
+          <div className="mx-auto flex max-w-4xl flex-col gap-4">
             {loraConsentEnabled ? chatTurns.map((turn, index) => (
               <div key={`${turn.role}-${index}`} className={turn.role === "user" ? "ml-auto max-w-[82%]" : "mr-auto max-w-[88%]"}>
-                <div className={turn.role === "user" ? "rounded-[20px] bg-[#3f46d8] p-4 text-sm leading-6 text-white" : "rounded-[20px] border border-white/10 bg-white/[0.045] p-4 font-mono text-sm leading-6 text-[#d9e2ee]"}>
+                <div className={turn.role === "user" ? "rounded-2xl bg-primary px-4 py-3 text-sm leading-6 text-primary-foreground" : "rounded-2xl border bg-card px-4 py-3 text-sm leading-6 text-card-foreground shadow-sm"}>
                   {turn.role === "assistant" ? <MarkdownMessage content={turn.content} /> : turn.content}
                 </div>
-                {turn.meta ? <div className="mt-1 px-2 text-xs text-[#8790a0]">{turn.meta}</div> : null}
+                {turn.meta ? <div className="mt-1 px-2 text-xs text-muted-foreground">{turn.meta}</div> : null}
                 {turn.citations && turn.citations.length > 0 ? (
                   <div className="mt-2 space-y-2">
                     {turn.citations.map((citation) => (
-                      <div key={citation.chunk_id} className="rounded-xl border border-indigo-300/20 bg-indigo-400/10 p-3 text-xs leading-5 text-indigo-100">
-                        <div className="mb-1 font-semibold">Citation {citation.chunk_index + 1}</div>
+                      <div key={citation.chunk_id} className="rounded-xl border bg-muted/50 p-3 text-xs leading-5 text-muted-foreground">
+                        <div className="mb-1 font-semibold text-foreground">Citation {citation.chunk_index + 1}</div>
                         {citation.snippet}
                       </div>
                     ))}
@@ -649,98 +634,37 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
                 ) : null}
               </div>
             )) : null}
-
             {chatLoading ? (
-              <div className="mr-auto inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-4 font-mono text-sm text-[#cbd5e1]"><Loader2 className="size-4 animate-spin" /> lora is thinking...</div>
+              <div className="mr-auto inline-flex items-center gap-2 rounded-2xl border bg-card p-4 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Lora is thinking...</div>
             ) : null}
           </div>
+        </div>
 
-          <div className="border-t border-white/10 bg-[#070b16] p-3">
-            <div className="flex flex-col gap-2 rounded-[18px] border border-white/10 bg-[#030712] p-2 md:flex-row md:items-end">
-              <label className="flex flex-1 items-start gap-2 px-2 py-1 font-mono text-sm text-[#9aa4b2]">
-                <span className="pt-2 text-emerald-300">hermes$</span>
-                <textarea
-                  value={message}
-                  onChange={(event) => setMessage(event.target.value)}
-                  className="min-h-12 flex-1 resize-none bg-transparent py-2 text-[#f7f8fb] outline-none placeholder:text-[#6f7887]"
-                  placeholder="Ask Lora what needs attention today..."
-                  disabled={!loraConsentEnabled || chatLoading}
-                />
-              </label>
-              <Button
-                className="rounded-2xl bg-[#3f46d8] px-5 text-white hover:bg-[#4f57ef]"
+        <div className="shrink-0 border-t bg-background p-3">
+          <div className="mx-auto flex max-w-4xl flex-col gap-2 rounded-2xl border bg-card p-2 shadow-sm md:flex-row md:items-end">
+            <label className="flex flex-1 items-start gap-2 px-2 py-1 text-sm text-muted-foreground">
+              <span className="pt-2 font-medium text-foreground">lora</span>
+              <textarea
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault()
+                    askLora()
+                  }
+                }}
+                className="min-h-12 flex-1 resize-none bg-transparent py-2 text-foreground outline-none placeholder:text-muted-foreground"
+                placeholder="Message Lora or type /briefing"
                 disabled={!loraConsentEnabled || chatLoading}
-                onClick={() => askLora()}
-              >
-                {chatLoading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-                Send
-              </Button>
-            </div>
-            {loraConsentEnabled ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {promptLibrary.slice(0, 3).map((prompt) => (
-                  <button
-                    key={prompt}
-                    className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-xs text-[#cbd5e1] transition hover:border-indigo-300/30 hover:bg-indigo-400/10"
-                    onClick={() => askLora(prompt)}
-                    disabled={chatLoading}
-                  >
-                    {prompt}
-                  </button>
-                ))}
-              </div>
-            ) : null}
+              />
+            </label>
+            <Button disabled={!loraConsentEnabled || chatLoading || !message.trim()} onClick={() => askLora()}>
+              {chatLoading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              Send
+            </Button>
           </div>
-        </section>
-
-        <aside className="space-y-4">
-          <section className="rounded-[20px] border border-white/10 bg-white/[0.035] p-4 shadow-[0_16px_50px_rgba(0,0,0,0.18)]">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#8790a0]">Provider</div>
-                <h2 className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[#f7f8fb]">Backend status</h2>
-              </div>
-              <Sparkles className="size-5 text-indigo-300" />
-            </div>
-            <div className="mt-4 space-y-2">
-              <ProviderStatusContent loraConsentEnabled={loraConsentEnabled} providersLoading={providersLoading} providersError={providersError} providers={providers} />
-            </div>
-          </section>
-
-          {loraConsentEnabled ? (
-            <section className="rounded-[20px] border border-indigo-300/20 bg-indigo-400/10 p-4 shadow-[0_16px_50px_rgba(0,0,0,0.18)]">
-              <div className="flex items-center gap-3">
-                <ClipboardList className="size-5 text-indigo-200" />
-                <div>
-                  <h2 className="text-base font-semibold tracking-[-0.03em] text-[#f7f8fb]">Operations briefing</h2>
-                  <p className="text-xs text-indigo-100/75">Refresh live Opslora facts before asking Lora.</p>
-                </div>
-              </div>
-              {snapshotSummary ? (
-                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Amount due</div><div className="mt-1 text-lg font-semibold">{money(snapshotSummary.amountDue)}</div></div>
-                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Open invoices</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.openInvoiceCount}</div></div>
-                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">To invoice</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.ordersToInvoiceCount}</div></div>
-                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Low stock</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.lowStockCount}</div></div>
-                </div>
-              ) : null}
-              {snapshotSummary?.recommendedActions.length ? (
-                <ul className="mt-4 space-y-2 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-3 text-xs leading-5 text-amber-50">
-                  {snapshotSummary.recommendedActions.map((action) => <li key={action}>• {action}</li>)}
-                </ul>
-              ) : null}
-              <Button
-                className="mt-4 w-full rounded-2xl bg-indigo-300 text-[#080b18] hover:bg-indigo-200"
-                disabled={snapshotLoading || chatLoading}
-                onClick={generateDailyBriefing}
-              >
-                {snapshotLoading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-                Generate live briefing
-              </Button>
-            </section>
-          ) : null}
-        </aside>
-      </div>
+        </div>
+      </section>
     </div>
   )
 }
