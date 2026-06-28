@@ -524,13 +524,13 @@ function PreferenceToggle({
   description,
   checked,
   onCheckedChange,
-}: {
+}: Readonly<{
   id: string
   title: string
   description: string
   checked: boolean
   onCheckedChange: (checked: boolean) => void
-}) {
+}>) {
   return (
     <Field orientation="horizontal" className="items-center rounded-lg border bg-card p-4 text-card-foreground">
       <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />

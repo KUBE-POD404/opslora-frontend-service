@@ -420,7 +420,6 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
       )
     } catch (error_) {
       setError(error_ instanceof Error ? error_.message : "Unable to generate operations briefing")
-    } finally {
     }
   }
 
@@ -501,7 +500,9 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
       setChatTurns(finalTurns)
       upsertSession(nextConversationId, finalTurns)
     } catch (error_) {
-      setChatTurns(chatTurns)
+      setChatTurns((currentTurns) =>
+        currentTurns.length === optimisticTurns.length ? currentTurns.slice(0, -1) : currentTurns
+      )
       setError(error_ instanceof Error ? error_.message : "Unable to ask Lora")
     } finally {
       setChatLoading(false)
