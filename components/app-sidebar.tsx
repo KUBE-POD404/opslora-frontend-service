@@ -120,11 +120,11 @@ const data = {
     },
   ],
   projects: [
-      {
-        name: "Invoice templates",
-        url: "/settings/invoice-templates",
-        icon: FileText,
-      },
+    {
+      name: "Invoice templates",
+      url: "/settings/invoice-templates",
+      icon: FileText,
+    },
     {
       name: "Customer portal",
       url: "/settings",
@@ -132,7 +132,7 @@ const data = {
     },
     {
       name: "Reports",
-      url: "/dashboard",
+      url: "/reports",
       icon: BarChart3,
     },
   ],
