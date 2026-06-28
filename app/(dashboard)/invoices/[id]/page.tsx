@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { apiFetch } from "@/lib/api"
+import { apiFetch, downloadApiBlob } from "@/lib/api"
 import { downloadInvoiceHtml, type DownloadableInvoice as Invoice, type DownloadablePayment as Payment } from "@/lib/invoice-download"
 
 function money(value: number, currency = "INR") {
@@ -54,6 +54,7 @@ export default function InvoiceViewPage() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingPayments, setLoadingPayments] = useState(true)
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -116,6 +117,22 @@ export default function InvoiceViewPage() {
     ? "IGST"
     : "CGST + SGST"
 
+  async function handleDownloadInvoice() {
+    if (!invoice) return
+
+    try {
+      setDownloadingInvoice(true)
+      await downloadApiBlob(`/invoices/${invoice.id}/download`, `${invoiceLabel}-opslora-invoice.pdf`)
+      toast.success(`${invoiceLabel} PDF downloaded`)
+    } catch (error) {
+      downloadInvoiceHtml(invoice, payments)
+      const message = error instanceof Error ? error.message : "PDF download unavailable"
+      toast.warning(`${message}. Downloaded printable HTML fallback.`)
+    } finally {
+      setDownloadingInvoice(false)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -147,13 +164,11 @@ export default function InvoiceViewPage() {
           </Button>
           <Button
             variant="secondary"
-            onClick={() => {
-              downloadInvoiceHtml(invoice, payments)
-              toast.success(`${invoiceLabel} invoice downloaded`)
-            }}
+            onClick={handleDownloadInvoice}
+            disabled={downloadingInvoice}
           >
-            <Download className="size-4" />
-            Download invoice
+            {downloadingInvoice ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+            Download PDF
           </Button>
         </div>
       </div>

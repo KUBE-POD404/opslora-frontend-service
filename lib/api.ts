@@ -140,6 +140,57 @@ export async function apiFetch<T>(
   return res.json()
 }
 
+export async function downloadApiBlob(path: string, fallbackFilename: string) {
+  const headers: Record<string, string> = {}
+  const token = readAccessToken()
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  let res = await fetch(`${API_URL}${path}`, { headers })
+
+  if (res.status === 401 && token && !path.startsWith("/auth/")) {
+    const newAccessToken = await refreshAccessToken()
+    if (newAccessToken) {
+      res = await fetch(`${API_URL}${path}`, {
+        headers: { Authorization: `Bearer ${newAccessToken}` },
+      })
+    }
+  }
+
+  if (res.status === 401) {
+    redirectToLogin()
+    throw new Error("Session expired")
+  }
+
+  if (!res.ok) {
+    throw new Error(await parseErrorMessage(res))
+  }
+
+  const blob = await res.blob()
+  const contentDisposition = res.headers.get("content-disposition")
+  const filename = filenameFromContentDisposition(contentDisposition) ?? fallbackFilename
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+function filenameFromContentDisposition(value: string | null) {
+  if (!value) return null
+  const filenamePart = value
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.toLowerCase().startsWith("filename="))
+  if (!filenamePart) return null
+  return filenamePart.slice("filename=".length).replaceAll('"', "")
+}
+
 export async function logoutSession() {
   const refreshToken = readRefreshToken()
 
