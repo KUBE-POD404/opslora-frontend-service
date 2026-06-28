@@ -213,16 +213,16 @@ export default function InvoicesPage() {
       <Panel>
         <PanelToolbar>
           <div className="relative w-full md:max-w-sm">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#6b707d]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] pl-9"
+              className="h-10 rounded-[9px] border-border bg-muted/40 pl-9"
               placeholder="Search invoice, customer, or order"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] md:w-[180px]">
+            <SelectTrigger className="h-10 rounded-[9px] border-border bg-muted/40 md:w-[180px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -253,7 +253,7 @@ export default function InvoicesPage() {
             {loading && (
               <TableRow>
                 <TableCell colSpan={7} className="py-10 text-center">
-                  <Loader2 className="mx-auto size-6 animate-spin text-[#6b707d]" />
+                  <Loader2 className="mx-auto size-6 animate-spin text-muted-foreground" />
                 </TableCell>
               </TableRow>
             )}
@@ -261,8 +261,8 @@ export default function InvoicesPage() {
             {!loading && filteredInvoices.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="py-12 text-center">
-                  <div className="font-medium text-[#12141a]">No invoices found</div>
-                  <div className="text-sm text-[#6b707d]">
+                  <div className="font-medium text-foreground">No invoices found</div>
+                  <div className="text-sm text-muted-foreground">
                     Confirm an order and create an invoice to start collecting payments.
                   </div>
                 </TableCell>
@@ -273,10 +273,10 @@ export default function InvoicesPage() {
               filteredInvoices.map((invoice) => (
                 <TableRow key={invoice.id}>
                   <TableCell>
-                    <div className="font-medium text-[#12141a]">
+                    <div className="font-medium text-foreground">
                       {invoice.invoice_number || `#${invoice.id}`}
                     </div>
-                    <div className="text-xs text-[#6b707d]">
+                    <div className="text-xs text-muted-foreground">
                       Created {formatDate(invoice.created_at)}
                     </div>
                   </TableCell>
@@ -377,19 +377,19 @@ export default function InvoicesPage() {
 
           {refundTarget && (
             <div className="space-y-4">
-              <div className="rounded-md border border-[#e0e4eb] bg-[#f8f9fa] p-4 text-sm">
-                <div className="font-medium text-[#12141a]">
+              <div className="rounded-md border border-border bg-muted/40 p-4 text-sm">
+                <div className="font-medium text-foreground">
                   {refundTarget.invoice_number || `Invoice #${refundTarget.id}`}
                 </div>
-                <div className="text-[#6b707d]">Refund amount: {money(refundTarget.total)}</div>
+                <div className="text-muted-foreground">Refund amount: {money(refundTarget.total)}</div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-medium text-[#636973]">
+                <label className="text-xs font-medium text-muted-foreground">
                   Refund reason
                 </label>
                 <textarea
-                  className="min-h-24 w-full rounded-md border border-[#d8dde6] bg-white/[0.04] p-3 text-sm outline-none focus:border-[#9aa3b2]"
+                  className="min-h-24 w-full rounded-md border border-input bg-muted/40 p-3 text-sm outline-none focus:border-ring"
                   placeholder="Optional reason for refund"
                   value={refundReason}
                   onChange={(event) => setRefundReason(event.target.value)}

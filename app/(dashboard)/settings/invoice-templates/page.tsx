@@ -150,22 +150,22 @@ export default function InvoiceTemplatesPage() {
   }, [])
 
   return (
-    <div className="space-y-6 text-[#e8edf4]">
-      <div className="flex flex-col gap-2 border-b border-white/10 pb-5">
+    <div className="space-y-6 text-foreground">
+      <div className="flex flex-col gap-2 border-b border-border pb-5">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-300/80">
           <FileText className="size-4" />
           Document design
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[#f7f8fb]">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Invoice templates
         </h1>
-        <p className="max-w-2xl text-sm text-[#8790a0]">
+        <p className="max-w-2xl text-sm text-muted-foreground">
           Choose how generated invoice PDFs should look. Opslora Default is used automatically until a different default is selected.
         </p>
       </div>
 
       {loading ? (
-        <div className="flex min-h-56 items-center justify-center rounded-lg border border-white/10 bg-[#141922]">
+        <div className="flex min-h-56 items-center justify-center rounded-lg border border-border bg-card">
           <Loader2 className="size-6 animate-spin text-cyan-300" />
         </div>
       ) : (
@@ -173,23 +173,23 @@ export default function InvoiceTemplatesPage() {
           {templates.map((template) => (
             <article
               key={template.key}
-              className="rounded-lg border border-white/10 bg-[#141922] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.24)]"
+              className="rounded-lg border border-border bg-card p-5 shadow-[0_18px_60px_rgba(0,0,0,0.24)]"
             >
               <TemplatePreview templateKey={template.key} compact />
 
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-semibold text-[#f7f8fb]">{template.name}</h2>
+                    <h2 className="text-lg font-semibold text-foreground">{template.name}</h2>
                     {template.key === "opslora_default" ? (
                       <Badge className="border-cyan-300/20 bg-cyan-300/10 text-cyan-200">
                         Default
                       </Badge>
                     ) : null}
                   </div>
-                  <p className="mt-2 text-sm text-[#8790a0]">{template.description}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{template.description}</p>
                 </div>
-                <span className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-xs text-[#8790a0]">
+                <span className="rounded-md border border-border bg-muted/35 px-2 py-1 text-xs text-muted-foreground">
                   v{template.version}
                 </span>
               </div>
@@ -203,14 +203,14 @@ export default function InvoiceTemplatesPage() {
               <div className="mt-5 flex flex-wrap gap-2">
                 <Button
                   variant="outline"
-                  className="h-9 border-white/10 bg-white/[0.03] text-[#d9e2ee] hover:bg-white/[0.07]"
+                  className="h-9 border-border bg-muted/35 text-foreground hover:bg-muted/60"
                   onClick={() => setSelectedTemplate(template)}
                 >
                   <Eye className="size-4" />
                   View template
                 </Button>
                 <Button
-                  className="h-9 bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+                  className="h-9"
                   onClick={() => {
                     downloadTemplateHtml(template)
                     toast.success(`${template.name} template downloaded`)
@@ -226,7 +226,7 @@ export default function InvoiceTemplatesPage() {
       )}
 
       <Dialog open={!!selectedTemplate} onOpenChange={() => setSelectedTemplate(null)}>
-        <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-6xl overflow-y-auto border-white/10 bg-[#0b0f15] p-4 text-[#e8edf4] sm:p-6">
+        <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-6xl overflow-y-auto border-border bg-background p-4 text-foreground sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="size-4 text-cyan-300" />
@@ -236,13 +236,13 @@ export default function InvoiceTemplatesPage() {
           {selectedTemplate ? (
             <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
               <TemplatePreview templateKey={selectedTemplate.key} />
-              <aside className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+              <aside className="rounded-lg border border-border bg-muted/35 p-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300/80">
                   Template notes
                 </div>
                 <p className="mt-3 text-sm text-[#aab3c2]">{selectedTemplate.description}</p>
                 <Button
-                  className="mt-5 w-full bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+                  className="mt-5 w-full"
                   onClick={() => {
                     downloadTemplateHtml(selectedTemplate)
                     toast.success(`${selectedTemplate.name} template downloaded`)
@@ -267,9 +267,9 @@ export default function InvoiceTemplatesPage() {
 
 function TemplateCapability({ label, enabled }: { label: string; enabled: boolean }) {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm">
+    <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
       <CheckCircle2 className={enabled ? "size-4 text-emerald-300" : "size-4 text-[#4d5665]"} />
-      <span className={enabled ? "text-[#d9e2ee]" : "text-[#667080]"}>{label}</span>
+      <span className={enabled ? "text-foreground" : "text-[#667080]"}>{label}</span>
     </div>
   )
 }
@@ -299,7 +299,7 @@ function PreviewShell({
 
   return (
     <div
-      className={`rounded-lg border border-white/10 bg-[#070a0f] ${compact ? "mb-5 h-56 overflow-hidden" : "max-w-full overflow-auto"
+      className={`rounded-lg border border-border bg-[#070a0f] ${compact ? "mb-5 h-56 overflow-hidden" : "max-w-full overflow-auto"
         }`}
     >
       <div className={`h-1.5 bg-gradient-to-r ${accentMap[accent]}`} />

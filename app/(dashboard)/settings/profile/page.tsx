@@ -245,7 +245,7 @@ export default function ProfileSettingsPage() {
           >
             Discard
           </Button>
-          <Button form="profile-form" className="h-9 rounded-md bg-primary text-primary-foreground hover:bg-[#262a33]" disabled={saving}>
+          <Button form="profile-form" className="h-9 rounded-md" disabled={saving}>
             <Save className="h-4 w-4" />
             {saving ? "Saving..." : "Save changes"}
           </Button>
@@ -255,7 +255,7 @@ export default function ProfileSettingsPage() {
       <Card className="rounded-lg border">
         <CardContent className="grid gap-5 pt-0 lg:grid-cols-[minmax(0,1fr)_minmax(320px,520px)] lg:items-center">
           <div className="flex items-center gap-4">
-            <div className="flex size-16 items-center justify-center rounded-full bg-[#181c24] text-lg font-semibold text-white">
+            <div className="flex size-16 items-center justify-center rounded-full bg-muted text-lg font-semibold text-foreground">
               {initials(profile)}
             </div>
             <div>

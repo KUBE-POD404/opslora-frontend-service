@@ -92,7 +92,7 @@ export default function CustomersPage() {
       title="Know every buyer before the next order."
       description="Manage customer profiles, tax details, addresses, portal access, and account status in one workspace."
       primaryAction={(
-        <Button asChild className="h-10 rounded-[9px] bg-[#3f46d8] text-white hover:bg-[#4f57ef]">
+        <Button asChild className="h-10 rounded-[9px]">
           <Link href="/customers/new">
             <Plus className="h-4 w-4" />
             New customer
@@ -111,7 +111,7 @@ export default function CustomersPage() {
         <PanelToolbar>
         <div className="grid w-full gap-3 xl:grid-cols-[minmax(240px,1fr)_160px_160px_170px_auto]">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b707d]" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(event) => {
@@ -119,7 +119,7 @@ export default function CustomersPage() {
               setSearch(event.target.value)
             }}
             placeholder="Search customers, email, phone, GSTIN"
-            className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] pl-9"
+            className="h-10 rounded-[9px] border-border bg-muted/40 pl-9"
           />
         </div>
 
@@ -130,7 +130,7 @@ export default function CustomersPage() {
             setStatusFilter(value)
           }}
         >
-          <SelectTrigger className="h-10 w-full rounded-[9px] border-white/10 bg-white/[0.04]">
+          <SelectTrigger className="h-10 w-full rounded-[9px] border-border bg-muted/40">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -147,7 +147,7 @@ export default function CustomersPage() {
             setTypeFilter(value)
           }}
         >
-          <SelectTrigger className="h-10 w-full rounded-[9px] border-white/10 bg-white/[0.04]">
+          <SelectTrigger className="h-10 w-full rounded-[9px] border-border bg-muted/40">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
@@ -164,7 +164,7 @@ export default function CustomersPage() {
             setPortalFilter(value)
           }}
         >
-          <SelectTrigger className="h-10 w-full rounded-[9px] border-white/10 bg-white/[0.04]">
+          <SelectTrigger className="h-10 w-full rounded-[9px] border-border bg-muted/40">
             <SelectValue placeholder="Portal" />
           </SelectTrigger>
           <SelectContent>
@@ -176,7 +176,7 @@ export default function CustomersPage() {
 
         <Button
           variant="outline"
-          className="h-10 rounded-[9px] border-white/10 bg-white/[0.04]"
+          className="h-10 rounded-[9px] border-border bg-muted/40"
           disabled={activeFilterCount === 0}
           onClick={() => {
             setSearch("")
@@ -192,7 +192,7 @@ export default function CustomersPage() {
         </div>
         </PanelToolbar>
 
-        <div className="flex flex-wrap items-center gap-2 border-b border-white/10 bg-white/[0.04] px-3 py-3 text-xs">
+        <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/40 px-3 py-3 text-xs">
           {[
             ["ALL", "All customers"],
             ["ACTIVE", "Active"],
@@ -205,15 +205,15 @@ export default function CustomersPage() {
                 type="button"
                 onClick={() => setStatusFilter(value)}
                 className={`rounded-full border px-3 py-1.5 transition ${active
-                  ? "border-[#3f46d8]/30 bg-[#f4f4ff] text-[#3f46d8]"
-                  : "border-white/10 bg-white/[0.04] text-[#8790a0] hover:text-[#f7f8fb]"
+                  ? "border-primary/30 bg-primary/10 text-primary"
+                  : "border-border bg-muted/40 text-muted-foreground hover:text-foreground"
                   }`}
               >
                 {label}
               </button>
             )
           })}
-          <span className="ml-auto text-[#8790a0]">
+          <span className="ml-auto text-muted-foreground">
             Showing {filteredCustomers.length} of {customers.length}
           </span>
         </div>
@@ -248,21 +248,21 @@ export default function CustomersPage() {
               filteredCustomers.map((customer) => (
                 <TableRow key={customer.id}>
                   <TableCell>
-                    <div className="font-medium text-[#12141a]">{customer.name}</div>
-                    <div className="text-sm text-[#6b707d]">
+                    <div className="font-medium text-foreground">{customer.name}</div>
+                    <div className="text-sm text-muted-foreground">
                       {customer.display_name || `ID ${customer.id}`}
                     </div>
                   </TableCell>
                   <TableCell>{customer.customer_type}</TableCell>
                   <TableCell>
                     <div>{customer.email}</div>
-                    <div className="text-sm text-[#6b707d]">
+                    <div className="text-sm text-muted-foreground">
                       {customer.phone || "No phone"}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div>{customer.gstin || customer.tax_id || "Not set"}</div>
-                    <div className="text-sm text-[#6b707d]">
+                    <div className="text-sm text-muted-foreground">
                       {customer.place_of_supply || customer.billing_state || ""}
                     </div>
                   </TableCell>
@@ -290,8 +290,8 @@ export default function CustomersPage() {
             {!loading && filteredCustomers.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="py-12 text-center">
-                  <div className="font-medium text-[#12141a]">No customers found</div>
-                  <div className="text-sm text-[#6b707d]">
+                  <div className="font-medium text-foreground">No customers found</div>
+                  <div className="text-sm text-muted-foreground">
                     {search.trim() ? "Try a different search term." : "Create your first customer to start orders and invoices."}
                   </div>
                 </TableCell>

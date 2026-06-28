@@ -167,13 +167,13 @@ export default function AddPaymentPage() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to invoice
           </Button>
-          <h1 className="mt-2 text-2xl font-semibold text-[#12141a]">Add Payment</h1>
-          <p className="text-sm text-[#6b707d]">
+          <h1 className="mt-2 text-2xl font-semibold text-foreground">Add Payment</h1>
+          <p className="text-sm text-muted-foreground">
             {invoice.invoice_number || `Invoice #${invoice.id}`} - {invoice.customer_name || "Customer"}
           </p>
         </div>
-        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3 text-sm">
-          <div className="text-[#6b707d]">Due date</div>
+        <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
+          <div className="text-muted-foreground">Due date</div>
           <div className="font-medium">{date(invoice.due_date)}</div>
         </div>
       </div>
@@ -185,7 +185,7 @@ export default function AddPaymentPage() {
       </div>
 
       {payments.length > 0 && (
-        <div className="rounded-lg border border-white/10 bg-white/[0.04]">
+        <div className="rounded-lg border border-border bg-muted/40">
           <Table>
             <TableHeader>
               <TableRow>
@@ -211,7 +211,7 @@ export default function AddPaymentPage() {
         </div>
       )}
 
-      <form className="rounded-lg border border-white/10 bg-white/[0.04] p-6" onSubmit={handlePay}>
+      <form className="rounded-lg border border-border bg-muted/40 p-6" onSubmit={handlePay}>
         <div className="grid gap-5 md:grid-cols-2">
           <Field label="Payment method">
             <Select value={method} onValueChange={(value) => setMethod(value as PaymentMethod)}>
@@ -278,7 +278,7 @@ export default function AddPaymentPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid gap-2">
-      <Label className="text-xs font-medium text-[#636973]">{label}</Label>
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
       {children}
     </div>
   )
@@ -298,11 +298,11 @@ function Metric({
       ? "text-emerald-700"
       : tone === "warn"
         ? "text-amber-700"
-        : "text-[#12141a]"
+        : "text-foreground"
 
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-      <div className="text-sm text-[#6b707d]">{label}</div>
+    <div className="rounded-lg border border-border bg-muted/40 p-4">
+      <div className="text-sm text-muted-foreground">{label}</div>
       <div className={`mt-1 text-2xl font-semibold ${toneClass}`}>{value}</div>
     </div>
   )

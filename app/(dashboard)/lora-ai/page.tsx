@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Bot, Loader2, MessageSquarePlus, PanelLeft, Send, ShieldCheck } from "lucide-react"
+import { Bot, Command, Loader2, MessageSquarePlus, PanelLeft, Send, ShieldCheck, Sparkles } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
@@ -109,6 +109,15 @@ type StockBalance = {
   low_stock_threshold: number | string
 }
 
+
+const LORA_SLASH_COMMANDS = [
+  {
+    command: "/briefing",
+    title: "Live briefing",
+    description: "Pull live Opslora data and ask Lora for the current operations briefing.",
+  },
+]
+
 type OperationsBriefingResponse = {
   summary: {
     active_customers: number
@@ -153,7 +162,7 @@ function renderInlineMarkdown(text: string) {
     }
 
     nodes.push(
-      <strong key={`strong-${index}`} className="font-semibold text-[#f7f8fb]">
+      <strong key={`strong-${index}`} className="font-semibold text-foreground">
         {remaining.slice(afterStart, end)}
       </strong>
     )
@@ -320,6 +329,13 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
   const userId = useMemo(() => toUserId(user), [user])
   const loraConsentEnabled = Boolean(organizationSettings?.lora_ai_enabled)
   const canManageLoraConsent = useMemo(() => canUserManageLoraConsent(user), [user])
+  const visibleSlashCommands = useMemo(() => {
+    const typedCommand = message.trim().toLowerCase()
+    if (!typedCommand.startsWith("/")) return []
+    return LORA_SLASH_COMMANDS.filter((item) =>
+      item.command.startsWith(typedCommand) || item.title.toLowerCase().includes(typedCommand.slice(1))
+    )
+  }, [message])
 
 
   useEffect(() => {
@@ -442,6 +458,13 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
     setMessage("")
     setNotice(null)
     setError(null)
+  }
+
+  function runSlashCommand(command: string) {
+    setMessage(command)
+    if (command === "/briefing") {
+      void askLora(command)
+    }
   }
 
   function openSession(session: ChatSession) {
@@ -681,7 +704,39 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
         </div>
 
         <div className="shrink-0 border-t bg-background p-3">
-          <div className="mx-auto flex max-w-4xl flex-col gap-2 rounded-2xl border bg-card p-2 shadow-sm md:flex-row md:items-end">
+          <div className="relative mx-auto flex max-w-4xl flex-col gap-2 rounded-2xl border bg-card p-2 shadow-sm md:flex-row md:items-end">
+            <AnimatePresence>
+              {visibleSlashCommands.length > 0 && loraConsentEnabled && !chatLoading ? (
+                <motion.div
+                  key="lora-slash-menu"
+                  initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                  transition={{ duration: 0.16, ease: "easeOut" }}
+                  className="absolute bottom-full left-0 right-0 z-20 mb-2 overflow-hidden rounded-2xl border bg-popover p-1 text-popover-foreground shadow-xl"
+                >
+                  <div className="flex items-center gap-2 px-3 py-2 text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                    <Command className="size-3.5" /> Commands
+                  </div>
+                  {visibleSlashCommands.map((item) => (
+                    <button
+                      key={item.command}
+                      type="button"
+                      className="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => runSlashCommand(item.command)}
+                    >
+                      <span className="mt-0.5 flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <Sparkles className="size-4" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2 text-sm font-medium">{item.title}<code className="rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{item.command}</code></span>
+                        <span className="mt-1 block text-xs leading-5 text-muted-foreground">{item.description}</span>
+                      </span>
+                    </button>
+                  ))}
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
             <label className="flex flex-1 items-start gap-2 px-2 py-1 text-sm text-muted-foreground">
               <span className="pt-2 font-medium text-foreground">lora</span>
               <textarea
@@ -690,6 +745,10 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault()
+                    if (message.trim() === "/" && visibleSlashCommands[0]) {
+                      runSlashCommand(visibleSlashCommands[0].command)
+                      return
+                    }
                     askLora()
                   }
                 }}
