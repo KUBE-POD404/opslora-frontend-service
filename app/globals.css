@@ -127,37 +127,6 @@
 }
 
 @layer utilities {
-  .ops-dashboard {
-    color-scheme: dark;
-  }
-
-  .ops-dashboard [class*="bg-white"],
-  .ops-dashboard [class*="bg-[#f8f9fa]"],
-  .ops-dashboard [class*="bg-slate-50"] {
-    background-color: var(--card) !important;
-  }
-
-  .ops-dashboard [class*="border-[#e0e4eb]"],
-  .ops-dashboard [class*="border-[#e3e4e8]"],
-  .ops-dashboard [class*="border-[#d7dbe2]"],
-  .ops-dashboard [class*="border-slate-200"] {
-    border-color: var(--border) !important;
-  }
-
-  .ops-dashboard [class*="text-[#6"],
-  .ops-dashboard [class*="text-slate-600"] {
-    color: var(--muted-foreground) !important;
-  }
-
-  .ops-dashboard [class*="text-[#12141a]"],
-  .ops-dashboard [class*="text-black"] {
-    color: var(--foreground) !important;
-  }
-
-  .ops-dashboard [role="switch"] span[class*="bg-white"] {
-    background-color: oklch(0.985 0 0) !important;
-  }
-
   .ops-dashboard .scrollbar-quiet {
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;

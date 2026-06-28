@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Field, FieldContent, FieldGroup, FieldLabel, FieldTitle } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Switch } from "@/components/ui/switch"
 import { apiFetch } from "@/lib/api"
 import type { OrganizationSettings } from "@/lib/organization-settings"
 
@@ -303,36 +304,36 @@ export function OrganizationSettingsClient({ section }: Readonly<{ section: Sett
     <form id="organization-settings-form" onSubmit={handleSave} className="flex w-full flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-[#f7f8fb] sm:text-[26px]">
+          <h1 className="text-2xl font-semibold tracking-normal text-foreground sm:text-[26px]">
             {copy.title}
           </h1>
-          <p className="mt-1 text-[13px] text-[#9aa4b2]">{copy.description}</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">{copy.description}</p>
         </div>
         <div className="flex gap-3 sm:pt-1">
           <Button
             type="button"
             variant="outline"
-            className="h-9 rounded-md border-white/10 bg-white/[0.04] text-[#d9e2ee] hover:bg-white/[0.08] hover:text-white"
+            className="h-9 rounded-md"
             onClick={() => setForm(initialForm)}
             disabled={saving}
           >
             Discard
           </Button>
-          <Button className="h-9 rounded-md bg-[#3f46d8] text-white hover:bg-[#4f57ef]" disabled={saving}>
+          <Button className="h-9 rounded-md" disabled={saving}>
             <Save className="h-4 w-4" />
             {saving ? "Saving..." : "Save changes"}
           </Button>
         </div>
       </div>
 
-      <section className="rounded-lg border border-white/10 bg-white/[0.04] p-4 sm:p-5">
+      <section className="rounded-lg border border bg-card p-4 sm:p-5">
         <div className="mb-5 flex items-start gap-3">
-          <div className="rounded-md border border-white/10 bg-white/[0.06] p-2 text-[#cbd5e1]">
+          <div className="rounded-md border border bg-muted p-2 text-[#cbd5e1]">
             {copy.icon}
           </div>
           <div>
-            <h2 className="text-[15px] font-semibold text-[#f7f8fb]">{copy.panelTitle}</h2>
-            <p className="mt-1 text-xs text-[#9aa4b2]">{copy.panelDescription}</p>
+            <h2 className="text-[15px] font-semibold text-foreground">{copy.panelTitle}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">{copy.panelDescription}</p>
           </div>
         </div>
 
@@ -387,7 +388,7 @@ export function OrganizationSettingsClient({ section }: Readonly<{ section: Sett
                 onCheckedChange={(checked) => updateForm(item.key, checked)}
               />
             ))}
-            <p className="md:col-span-2 text-xs text-[#9aa4b2]">
+            <p className="md:col-span-2 text-xs text-muted-foreground">
               {enabledCount}/{capabilityToggles.length} organization capabilities enabled. {featureFlags.length} backend feature flag records loaded.
             </p>
           </div>
@@ -412,12 +413,12 @@ export function OrganizationSettingsClient({ section }: Readonly<{ section: Sett
 
         {section === "lora" ? (
           <FieldGroup>
-            <div className="rounded-lg border border-amber-300/20 bg-amber-400/10 p-4 text-sm leading-6 text-amber-50">
+            <div className="rounded-lg border bg-card p-4 text-sm leading-6 text-card-foreground">
               <div className="flex items-start gap-3">
-                <Bot className="mt-0.5 h-5 w-5 text-amber-200" />
+                <Bot className="mt-0.5 h-5 w-5 text-muted-foreground" />
                 <div>
                   <div className="font-semibold">Lora AI is opt-in for each organization.</div>
-                  <p className="mt-1 text-xs text-amber-50/75">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     When enabled, Opslora may send organization operations data such as customers, orders, invoices, payments, inventory, and generated snapshots to the Lora AI service so it can answer questions and prepare briefings. Keep this off if the organization has not consented.
                   </p>
                 </div>
@@ -429,7 +430,7 @@ export function OrganizationSettingsClient({ section }: Readonly<{ section: Sett
               checked={form.lora_ai_enabled}
               onCheckedChange={(checked) => updateForm("lora_ai_enabled", checked)}
             />
-            <p className="text-xs leading-5 text-[#9aa4b2]">
+            <p className="text-xs leading-5 text-muted-foreground">
               {formatLoraConsentStatus(form)}
             </p>
           </FieldGroup>
@@ -456,7 +457,7 @@ function TextField({
 }>) {
   return (
     <Field>
-      <FieldLabel htmlFor={id} className="text-xs font-medium text-[#d9e2ee]">
+      <FieldLabel htmlFor={id} className="text-xs font-medium text-foreground">
         {label}
       </FieldLabel>
       <Input
@@ -466,7 +467,7 @@ function TextField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-9 rounded-md border-white/10 bg-white/[0.04] text-xs text-[#f7f8fb] placeholder:text-[#8790a0]"
+        className="h-9 rounded-md border bg-card text-xs text-foreground placeholder:text-[#8790a0]"
       />
     </Field>
   )
@@ -489,7 +490,7 @@ function NumberField({
 }>) {
   return (
     <Field>
-      <FieldLabel htmlFor={id} className="text-xs font-medium text-[#d9e2ee]">
+      <FieldLabel htmlFor={id} className="text-xs font-medium text-foreground">
         {label}
       </FieldLabel>
       <Input
@@ -500,7 +501,7 @@ function NumberField({
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-9 rounded-md border-white/10 bg-white/[0.04] text-xs text-[#f7f8fb] placeholder:text-[#8790a0]"
+        className="h-9 rounded-md border bg-card text-xs text-foreground placeholder:text-[#8790a0]"
       />
     </Field>
   )
@@ -518,28 +519,10 @@ function ToggleSwitch({
   onCheckedChange: (checked: boolean) => void
 }>) {
   return (
-    <Field orientation="horizontal" className="items-center gap-3">
-      <button
-        id={id}
-        name={id}
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onCheckedChange(!checked)}
-        className={[
-          "relative h-[22px] w-[38px] rounded-full transition-colors",
-          checked ? "bg-[#3f46d8]" : "bg-white/15",
-        ].join(" ")}
-      >
-        <span
-          className={[
-            "absolute top-[3px] h-4 w-4 rounded-full bg-white transition-transform",
-            checked ? "translate-x-[19px]" : "translate-x-[3px]",
-          ].join(" ")}
-        />
-      </button>
+    <Field orientation="horizontal" className="items-center gap-3 rounded-lg border bg-card p-4 text-card-foreground">
+      <Switch id={id} name={id} checked={checked} onCheckedChange={onCheckedChange} />
       <FieldContent>
-        <FieldTitle className="text-xs font-medium text-[#12141a]">{title}</FieldTitle>
+        <FieldTitle className="text-sm text-foreground">{title}</FieldTitle>
       </FieldContent>
     </Field>
   )

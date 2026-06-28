@@ -45,7 +45,7 @@ export default function DashboardLayout({
 
 
   return (
-    <div className="dark ops-dashboard [--header-height:calc(--spacing(14))]">
+    <div className="ops-dashboard [--header-height:calc(--spacing(14))]">
       <SidebarProvider className="flex flex-col min-h-screen">
 
         <SiteHeader />
