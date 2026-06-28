@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Bot, Loader2, MessageSquarePlus, PanelLeft, Send, ShieldCheck } from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -539,8 +540,17 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
 
   return (
     <div className="-m-4 flex h-[calc(100svh-var(--header-height))] overflow-hidden bg-background text-foreground">
-      {historyOpen ? (
-        <aside className="hidden w-72 shrink-0 border-r bg-muted/35 p-3 md:flex md:flex-col">
+      <AnimatePresence initial={false}>
+        {historyOpen ? (
+          <motion.aside
+            key="lora-history"
+            initial={{ width: 0, opacity: 0, x: -18 }}
+            animate={{ width: 288, opacity: 1, x: 0 }}
+            exit={{ width: 0, opacity: 0, x: -18 }}
+            transition={{ duration: 0.24, ease: "easeOut" }}
+            className="hidden shrink-0 overflow-hidden border-r bg-muted/35 md:flex md:flex-col"
+          >
+            <div className="w-72 p-3">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-sm font-semibold">Lora</div>
             <Button variant="ghost" size="icon-sm" onClick={startNewChat} title="New chat">
@@ -561,8 +571,10 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
               </button>
             ))}
           </div>
-        </aside>
-      ) : null}
+            </div>
+          </motion.aside>
+        ) : null}
+      </AnimatePresence>
 
       <section className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-3">
@@ -617,8 +629,15 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
           ) : null}
 
           <div className="mx-auto flex max-w-4xl flex-col gap-4">
-            {loraConsentEnabled ? chatTurns.map((turn, index) => (
-              <div key={`${turn.role}-${index}`} className={turn.role === "user" ? "ml-auto max-w-[82%]" : "mr-auto max-w-[88%]"}>
+            <AnimatePresence initial={false}>
+              {loraConsentEnabled ? chatTurns.map((turn, index) => (
+              <motion.div
+                key={`${turn.role}-${index}`}
+                initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+                className={turn.role === "user" ? "ml-auto max-w-[82%]" : "mr-auto max-w-[88%]"}
+              >
                 <div className={turn.role === "user" ? "rounded-2xl bg-primary px-4 py-3 text-sm leading-6 text-primary-foreground" : "rounded-2xl border bg-card px-4 py-3 text-sm leading-6 text-card-foreground shadow-sm"}>
                   {turn.role === "assistant" ? <MarkdownMessage content={turn.content} /> : turn.content}
                 </div>
@@ -633,11 +652,31 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
                     ))}
                   </div>
                 ) : null}
-              </div>
+              </motion.div>
             )) : null}
-            {chatLoading ? (
-              <div className="mr-auto inline-flex items-center gap-2 rounded-2xl border bg-card p-4 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Lora is thinking...</div>
-            ) : null}
+              {chatLoading ? (
+                <motion.div
+                  key="lora-thinking"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 6 }}
+                  className="mr-auto inline-flex items-center gap-3 rounded-2xl border bg-card px-4 py-3 text-sm text-muted-foreground shadow-sm"
+                >
+                  <span className="relative flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Bot className="size-4" />
+                    <span className="absolute inset-0 rounded-full border border-primary/25 animate-ping" />
+                  </span>
+                  <span className="flex items-center gap-1">
+                    Lora is composing
+                    <span className="inline-flex gap-1">
+                      <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.24s]" />
+                      <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.12s]" />
+                      <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground" />
+                    </span>
+                  </span>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
           </div>
         </div>
 

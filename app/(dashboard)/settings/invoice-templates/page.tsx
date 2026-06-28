@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
-import { CheckCircle2, Eye, FileText, Loader2, Sparkles } from "lucide-react"
+import { CheckCircle2, Download, Eye, FileText, Loader2, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +23,104 @@ type InvoiceTemplate = {
   supports_logo: boolean
   supports_tax_summary: boolean
   supports_bank_details: boolean
+}
+
+const SAMPLE_INVOICE_HTML = `
+  <section class="invoice-shell">
+    <header class="invoice-header">
+      <div>
+        <div class="eyebrow">Opslora</div>
+        <h1>Invoice</h1>
+        <p>Professional GST-ready invoice generated from the selected template.</p>
+      </div>
+      <div class="invoice-meta">
+        <strong>Invoice #INV-2026-0042</strong>
+        <span>Issued Jun 12, 2026</span>
+        <span>Due Jun 27, 2026</span>
+      </div>
+    </header>
+    <div class="parties">
+      <div><span>From</span><strong>Opslora Private Workspace</strong><p>GSTIN 32ABCDE1234F1Z5<br/>Trivandrum, Kerala</p></div>
+      <div><span>Bill to</span><strong>Aster Retail Co.</strong><p>finance@aster.example<br/>Bengaluru, Karnataka</p></div>
+    </div>
+    <table>
+      <thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+      <tbody>
+        <tr><td>Inventory starter kit</td><td>2</td><td>Rs 7,500</td><td>Rs 15,000</td></tr>
+        <tr><td>Priority onboarding</td><td>1</td><td>Rs 6,000</td><td>Rs 6,000</td></tr>
+        <tr><td>Workflow automation</td><td>3</td><td>Rs 1,260</td><td>Rs 3,780</td></tr>
+      </tbody>
+    </table>
+    <footer>
+      <p>Payment accepted by bank transfer, UPI, or card. Thank you for your business.</p>
+      <div class="totals"><span>Subtotal <b>Rs 24,780</b></span><span>Tax <b>Rs 3,780</b></span><strong>Total Rs 28,560</strong></div>
+    </footer>
+  </section>
+`
+
+function templateAccent(templateKey: string) {
+  if (templateKey === "opslora_compact") return "#10b981"
+  if (templateKey === "opslora_tax_detailed") return "#f59e0b"
+  if (templateKey === "opslora_service") return "#8b5cf6"
+  return "#06b6d4"
+}
+
+function buildTemplateDownloadHtml(template: InvoiceTemplate) {
+  const accent = templateAccent(template.key)
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${template.name} invoice template</title>
+  <style>
+    :root { color-scheme: light; --accent: ${accent}; --ink: #141821; --muted: #6f6a5d; --paper: #f8f5ec; --line: #d8d2c3; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #eef1f5; color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .page { width: min(980px, calc(100vw - 32px)); margin: 32px auto; }
+    .toolbar { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 16px; color: #475569; }
+    .toolbar strong { color: #0f172a; }
+    .invoice-shell { overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: var(--paper); box-shadow: 0 24px 80px rgba(15,23,42,.16); }
+    .invoice-shell::before { content: ""; display: block; height: 8px; background: linear-gradient(90deg, var(--accent), #2563eb); }
+    .invoice-header, .parties, footer { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; padding: 34px; }
+    .invoice-header { border-bottom: 1px solid var(--line); }
+    .eyebrow { display: inline-flex; border-radius: 999px; background: #0e2630; color: #cffafe; padding: 6px 12px; font-size: 11px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+    h1 { margin: 18px 0 4px; font-size: clamp(34px, 8vw, 58px); letter-spacing: -.06em; }
+    p { margin: 0; color: var(--muted); line-height: 1.6; }
+    .invoice-meta { text-align: right; display: grid; align-content: start; gap: 6px; color: var(--muted); }
+    .invoice-meta strong, .parties strong { color: var(--ink); }
+    .parties span { display: block; margin-bottom: 8px; color: #8a7d65; font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    table { width: calc(100% - 68px); margin: 0 34px; border-collapse: separate; border-spacing: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; }
+    th, td { padding: 14px 16px; text-align: right; border-top: 1px solid var(--line); }
+    th:first-child, td:first-child { text-align: left; }
+    thead th { border-top: 0; background: #eee7d7; color: var(--muted); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
+    footer { align-items: start; }
+    .totals { display: grid; gap: 10px; border: 1px solid var(--line); border-radius: 14px; background: #fffdf6; padding: 18px; }
+    .totals span, .totals strong { display: flex; justify-content: space-between; gap: 16px; }
+    .totals strong { border-top: 1px solid var(--line); padding-top: 12px; font-size: 20px; }
+    @media (max-width: 720px) { .invoice-header, .parties, footer { grid-template-columns: 1fr; padding: 22px; } .invoice-meta { text-align: left; } table { width: calc(100% - 44px); margin: 0 22px; font-size: 13px; } th, td { padding: 10px 8px; } }
+    @media print { body { background: white; } .page { width: 100%; margin: 0; } .toolbar { display: none; } .invoice-shell { box-shadow: none; border-radius: 0; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="toolbar"><strong>${template.name}</strong><span>${template.description}</span></div>
+    ${SAMPLE_INVOICE_HTML}
+  </main>
+</body>
+</html>`
+}
+
+function downloadTemplateHtml(template: InvoiceTemplate) {
+  const blob = new Blob([buildTemplateDownloadHtml(template)], { type: "text/html;charset=utf-8" })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = `${template.key}-invoice-template.html`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
 }
 
 export default function InvoiceTemplatesPage() {
@@ -102,21 +200,33 @@ export default function InvoiceTemplatesPage() {
                 <TemplateCapability label="Bank details" enabled={template.supports_bank_details} />
               </div>
 
-              <Button
-                variant="outline"
-                className="mt-5 h-9 border-white/10 bg-white/[0.03] text-[#d9e2ee] hover:bg-white/[0.07]"
-                onClick={() => setSelectedTemplate(template)}
-              >
-                <Eye className="size-4" />
-                View template
-              </Button>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  className="h-9 border-white/10 bg-white/[0.03] text-[#d9e2ee] hover:bg-white/[0.07]"
+                  onClick={() => setSelectedTemplate(template)}
+                >
+                  <Eye className="size-4" />
+                  View template
+                </Button>
+                <Button
+                  className="h-9 bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+                  onClick={() => {
+                    downloadTemplateHtml(template)
+                    toast.success(`${template.name} template downloaded`)
+                  }}
+                >
+                  <Download className="size-4" />
+                  Download
+                </Button>
+              </div>
             </article>
           ))}
         </div>
       )}
 
       <Dialog open={!!selectedTemplate} onOpenChange={() => setSelectedTemplate(null)}>
-        <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto border-white/10 bg-[#0b0f15] text-[#e8edf4]">
+        <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-6xl overflow-y-auto border-white/10 bg-[#0b0f15] p-4 text-[#e8edf4] sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="size-4 text-cyan-300" />
@@ -124,13 +234,23 @@ export default function InvoiceTemplatesPage() {
             </DialogTitle>
           </DialogHeader>
           {selectedTemplate ? (
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
               <TemplatePreview templateKey={selectedTemplate.key} />
               <aside className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300/80">
                   Template notes
                 </div>
                 <p className="mt-3 text-sm text-[#aab3c2]">{selectedTemplate.description}</p>
+                <Button
+                  className="mt-5 w-full bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+                  onClick={() => {
+                    downloadTemplateHtml(selectedTemplate)
+                    toast.success(`${selectedTemplate.name} template downloaded`)
+                  }}
+                >
+                  <Download className="size-4" />
+                  Download live template
+                </Button>
                 <div className="mt-5 space-y-2">
                   <TemplateCapability label="Organization logo" enabled={selectedTemplate.supports_logo} />
                   <TemplateCapability label="GST/tax summary" enabled={selectedTemplate.supports_tax_summary} />
@@ -179,12 +299,12 @@ function PreviewShell({
 
   return (
     <div
-      className={`overflow-hidden rounded-lg border border-white/10 bg-[#070a0f] ${compact ? "mb-5 h-56" : "min-h-[680px]"
+      className={`rounded-lg border border-white/10 bg-[#070a0f] ${compact ? "mb-5 h-56 overflow-hidden" : "max-w-full overflow-auto"
         }`}
     >
       <div className={`h-1.5 bg-gradient-to-r ${accentMap[accent]}`} />
-      <div className={`${compact ? "scale-[0.48] origin-top-left p-8 w-[200%]" : "p-8"} text-[#141821]`}>
-        <div className="min-h-[620px] rounded-sm bg-[#f8f5ec] p-8 shadow-2xl">
+      <div className={`${compact ? "scale-[0.48] origin-top-left p-8 w-[200%]" : "min-w-[720px] p-4 sm:p-8"} text-[#141821]`}>
+        <div className="min-h-[620px] rounded-sm bg-[#f8f5ec] p-5 shadow-2xl sm:p-8">
           {children}
         </div>
       </div>
