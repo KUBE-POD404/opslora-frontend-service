@@ -328,7 +328,7 @@ export function OrganizationSettingsClient({ section }: Readonly<{ section: Sett
 
       <section className="rounded-lg border border bg-card p-4 sm:p-5">
         <div className="mb-5 flex items-start gap-3">
-          <div className="rounded-md border border bg-muted p-2 text-[#cbd5e1]">
+          <div className="rounded-md border bg-muted p-2 text-foreground">
             {copy.icon}
           </div>
           <div>
@@ -467,7 +467,7 @@ function TextField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-9 rounded-md border bg-card text-xs text-foreground placeholder:text-[#8790a0]"
+        className="h-9 rounded-md border bg-card text-xs text-foreground placeholder:text-muted-foreground"
       />
     </Field>
   )
@@ -501,7 +501,7 @@ function NumberField({
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-9 rounded-md border bg-card text-xs text-foreground placeholder:text-[#8790a0]"
+        className="h-9 rounded-md border bg-card text-xs text-foreground placeholder:text-muted-foreground"
       />
     </Field>
   )

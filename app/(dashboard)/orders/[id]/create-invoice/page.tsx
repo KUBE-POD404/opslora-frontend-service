@@ -186,8 +186,8 @@ export default function CreateInvoicePage() {
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[#12141a]">Create Invoice</h1>
-          <p className="text-sm text-[#6b707d]">
+          <h1 className="text-2xl font-semibold text-foreground">Create Invoice</h1>
+          <p className="text-sm text-muted-foreground">
             Order #{order.id} - {order.customer_name || customerName}
           </p>
         </div>
@@ -196,8 +196,8 @@ export default function CreateInvoicePage() {
         </Button>
       </div>
 
-      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-6 shadow-[0_16px_50px_rgba(0,0,0,0.16)] space-y-8">
-        <div className="grid gap-3 rounded-lg border border-white/10 bg-[#f8f9fa] p-4 md:grid-cols-4">
+      <div className="rounded-lg border border-border bg-muted/40 p-6 shadow-[0_16px_50px_rgba(0,0,0,0.16)] space-y-8">
+        <div className="grid gap-3 rounded-lg border border-border bg-muted/40 p-4 md:grid-cols-4">
           <PreviewMeta label="Order status" value={order.status} />
           <PreviewMeta label="Customer" value={order.customer_name || customerName} />
           <PreviewMeta label="GSTIN" value={order.customer_gstin || "-"} />
@@ -249,10 +249,10 @@ export default function CreateInvoicePage() {
 
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <div className="space-y-4">
-            <div className="rounded-lg border border-white/10 p-4 space-y-4">
+            <div className="rounded-lg border border-border p-4 space-y-4">
               <div>
-                <h3 className="text-sm font-medium text-[#636973]">Invoice template</h3>
-                <p className="mt-1 text-xs text-[#6b707d]">
+                <h3 className="text-sm font-medium text-muted-foreground">Invoice template</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
                   The selected template is snapshotted into this invoice.
                 </p>
               </div>
@@ -271,18 +271,18 @@ export default function CreateInvoicePage() {
               {templates
                 .filter((template) => template.key === selectedTemplateKey)
                 .map((template) => (
-                  <div key={template.key} className="rounded-md border border-white/10 bg-[#f8f9fa] p-3">
+                  <div key={template.key} className="rounded-md border border-border bg-muted/40 p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="font-medium text-[#12141a]">{template.name}</div>
-                      <div className="text-xs text-[#6b707d]">v{template.version}</div>
+                      <div className="font-medium text-foreground">{template.name}</div>
+                      <div className="text-xs text-muted-foreground">v{template.version}</div>
                     </div>
-                    <p className="mt-1 text-sm text-[#6b707d]">{template.description}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{template.description}</p>
                   </div>
                 ))}
             </div>
 
-            <div className="rounded-lg border border-white/10 p-4 space-y-4">
-              <h3 className="text-sm font-medium text-[#636973]">Discount</h3>
+            <div className="rounded-lg border border-border p-4 space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground">Discount</h3>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Discount Type</Label>
@@ -317,7 +317,7 @@ export default function CreateInvoicePage() {
             </div>
           </div>
 
-          <div className="space-y-3 rounded-lg border border-white/10 p-4 text-sm">
+          <div className="space-y-3 rounded-lg border border-border p-4 text-sm">
             <TotalRow label="Subtotal" value={money(subtotal)} />
             <TotalRow label="Tax" value={money(tax)} />
             <TotalRow label="Discount" value={`- ${money(discountAmount)}`} />
@@ -345,10 +345,10 @@ export default function CreateInvoicePage() {
 function PreviewMeta({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-xs font-medium uppercase tracking-normal text-[#6b707d]">
+      <div className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
         {label}
       </div>
-      <div className="mt-1 truncate text-sm font-medium text-[#12141a]">{value}</div>
+      <div className="mt-1 truncate text-sm font-medium text-foreground">{value}</div>
     </div>
   )
 }
@@ -356,7 +356,7 @@ function PreviewMeta({ label, value }: { label: string; value: string }) {
 function TotalRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between">
-      <span className="text-[#6b707d]">{label}</span>
+      <span className="text-muted-foreground">{label}</span>
       <span>{value}</span>
     </div>
   )

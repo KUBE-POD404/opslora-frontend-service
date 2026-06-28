@@ -108,8 +108,8 @@ function statusClass(status: string) {
 function Field({ label, value }: { label: string; value?: string | number | null }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-normal text-[#6b707d]">{label}</p>
-      <p className="mt-1 font-medium text-[#12141a]">{value || "-"}</p>
+      <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">{label}</p>
+      <p className="mt-1 font-medium text-foreground">{value || "-"}</p>
     </div>
   )
 }
@@ -192,8 +192,8 @@ export default function InvoiceViewPage() {
             Back to invoices
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold text-[#12141a]">Invoice {invoiceLabel}</h1>
-            <p className="text-sm text-[#6b707d]">
+            <h1 className="text-2xl font-semibold text-foreground">Invoice {invoiceLabel}</h1>
+            <p className="text-sm text-muted-foreground">
               Order #{invoice.order_id} - {invoice.customer_name || "Customer"}
             </p>
           </div>
@@ -219,13 +219,13 @@ export default function InvoiceViewPage() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-6 shadow-[0_16px_50px_rgba(0,0,0,0.16)]">
+      <div className="rounded-lg border border-border bg-muted/40 p-6 shadow-[0_16px_50px_rgba(0,0,0,0.16)]">
         <div className="grid gap-8 md:grid-cols-2">
           <section className="space-y-4">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-normal text-[#6b707d]">Seller</p>
-              <h2 className="text-xl font-semibold text-[#12141a]">{sellerName}</h2>
-              <p className="text-sm text-[#6b707d]">{invoice.seller_legal_name || "-"}</p>
+              <p className="text-sm font-semibold uppercase tracking-normal text-muted-foreground">Seller</p>
+              <h2 className="text-xl font-semibold text-foreground">{sellerName}</h2>
+              <p className="text-sm text-muted-foreground">{invoice.seller_legal_name || "-"}</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="GSTIN / Tax ID" value={invoice.seller_tax_id} />
@@ -238,11 +238,11 @@ export default function InvoiceViewPage() {
             <Field label="Address" value={invoice.seller_address} />
           </section>
 
-          <section className="space-y-4 rounded-lg bg-[#f8f9fa] p-5">
+          <section className="space-y-4 rounded-lg bg-muted/40 p-5">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-normal text-[#6b707d]">Bill to</p>
-              <h2 className="text-xl font-semibold text-[#12141a]">{invoice.customer_name || "Customer"}</h2>
-              <p className="text-sm text-[#6b707d]">{invoice.customer_email || "-"}</p>
+              <p className="text-sm font-semibold uppercase tracking-normal text-muted-foreground">Bill to</p>
+              <h2 className="text-xl font-semibold text-foreground">{invoice.customer_name || "Customer"}</h2>
+              <p className="text-sm text-muted-foreground">{invoice.customer_email || "-"}</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Customer GSTIN" value={invoice.customer_gstin} />
@@ -260,7 +260,7 @@ export default function InvoiceViewPage() {
         <Metric label="Total" value={money(invoice.total)} helper={`Subtotal ${money(invoice.subtotal)} + tax ${money(invoice.tax)}`} />
       </div>
 
-      <div className="rounded-lg border border-white/10 bg-white/[0.04]">
+      <div className="rounded-lg border border-border bg-muted/40">
         <Table>
           <TableHeader>
             <TableRow>
@@ -299,7 +299,7 @@ export default function InvoiceViewPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <section className="space-y-4 rounded-lg border border-white/10 bg-white/[0.04] p-5">
+        <section className="space-y-4 rounded-lg border border-border bg-muted/40 p-5">
           <h2 className="text-lg font-semibold">Tax summary</h2>
           <Table>
             <TableHeader>
@@ -323,7 +323,7 @@ export default function InvoiceViewPage() {
           </Table>
         </section>
 
-        <section className="space-y-3 rounded-lg border border-white/10 bg-white/[0.04] p-5">
+        <section className="space-y-3 rounded-lg border border-border bg-muted/40 p-5">
           <TotalRow label="Subtotal" value={money(invoice.subtotal)} />
           <TotalRow label="Tax" value={money(invoice.tax)} />
           {invoice.discount_type && (
@@ -340,7 +340,7 @@ export default function InvoiceViewPage() {
         </section>
       </div>
 
-      <section className="space-y-3 rounded-lg border border-white/10 bg-white/[0.04] p-5">
+      <section className="space-y-3 rounded-lg border border-border bg-muted/40 p-5">
         <h2 className="text-lg font-semibold">Payment transactions</h2>
         <div className="rounded-md border">
           <Table>
@@ -400,17 +400,17 @@ export default function InvoiceViewPage() {
 
 function Metric({ label, value, helper }: { label: string; value: string; helper: string }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-      <p className="text-sm text-[#6b707d]">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-[#12141a]">{value}</p>
-      <p className="text-sm text-[#6b707d]">{helper}</p>
+    <div className="rounded-lg border border-border bg-muted/40 p-4">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-foreground">{value}</p>
+      <p className="text-sm text-muted-foreground">{helper}</p>
     </div>
   )
 }
 
 function TotalRow({ label, value, muted = false }: { label: string; value: string; muted?: boolean }) {
   return (
-    <div className={`flex justify-between text-sm ${muted ? "text-[#6b707d]" : ""}`}>
+    <div className={`flex justify-between text-sm ${muted ? "text-muted-foreground" : ""}`}>
       <span>{label}</span>
       <span>{value}</span>
     </div>
@@ -419,8 +419,8 @@ function TotalRow({ label, value, muted = false }: { label: string; value: strin
 
 function TextPanel({ title, value }: { title: string; value?: string | null }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.04] p-5">
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-normal text-[#6b707d]">{title}</h2>
+    <div className="rounded-lg border border-border bg-muted/40 p-5">
+      <h2 className="mb-2 text-sm font-semibold uppercase tracking-normal text-muted-foreground">{title}</h2>
       <p className="whitespace-pre-wrap text-sm">{value || "-"}</p>
     </div>
   )

@@ -192,32 +192,32 @@ export default function DashboardPage() {
   const attentionCount = stats.overdueInvoices.length + stats.ordersToInvoice.length + stats.lowStock.length
 
   return (
-    <div className="-m-4 min-h-[calc(100svh-var(--header-height))] bg-[#070b16] p-4 text-[#f7f8fb] [font-feature-settings:'cv01','ss03'] md:p-6">
+    <div className="-m-4 min-h-[calc(100svh-var(--header-height))] bg-background p-4 text-foreground [font-feature-settings:'cv01','ss03'] md:p-6">
       <div className="mx-auto max-w-7xl space-y-5">
-        <section className="overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.035] shadow-[0_1px_1px_rgba(24,24,27,0.04),0_18px_60px_rgba(24,24,27,0.08)]">
+        <section className="overflow-hidden rounded-[22px] border border-border bg-card shadow-[0_1px_1px_rgba(24,24,27,0.04),0_18px_60px_rgba(24,24,27,0.08)]">
           <div className="grid gap-0">
             <div className="p-5 md:p-7">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[#070b16] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[#8790a0]">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
                     <span className="size-2 rounded-full bg-emerald-400/100 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />
                     Today&apos;s operating view
                   </div>
                   <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-none tracking-[-0.06em] text-balance md:text-5xl">
                     What needs attention before the day moves forward?
                   </h1>
-                  <p className="mt-3 max-w-2xl text-sm leading-7 text-[#8790a0] md:text-base">
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
                     Cash, receivables, orders, stock, and operating signals in one dark workspace.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:items-end">
-                  <Button asChild className="h-10 rounded-[9px] bg-[#3f46d8] text-white hover:bg-[#4f57ef]">
+                  <Button asChild className="h-10 rounded-[9px]">
                     <Link href="/orders">
                       <ShoppingCart className="size-4" />
                       New order
                     </Link>
                   </Button>
-                  <div className="flex h-9 min-w-56 items-center gap-2 rounded-[9px] border border-white/10 bg-white/[0.03] px-3 text-xs text-[#8790a0]">
+                  <div className="flex h-9 min-w-56 items-center gap-2 rounded-[9px] border border-border bg-muted/35 px-3 text-xs text-muted-foreground">
                     <Search className="size-3.5" /> Search workspace
                   </div>
                 </div>
@@ -226,7 +226,7 @@ export default function DashboardPage() {
               <div className="mt-7 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 {loading ? (
                   Array.from({ length: 4 }).map((_, index) => (
-                    <Skeleton key={index} className="h-28 rounded-2xl bg-white/[0.06]" />
+                    <Skeleton key={index} className="h-28 rounded-2xl bg-muted/50" />
                   ))
                 ) : (
                   <>
@@ -243,13 +243,13 @@ export default function DashboardPage() {
         </section>
 
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-5 shadow-[0_1px_1px_rgba(24,24,27,0.04)]">
+          <section className="rounded-[18px] border border-border bg-card p-5 shadow-[0_1px_1px_rgba(24,24,27,0.04)]">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-[#8790a0]">Collections</h2>
-                <p className="mt-1 text-sm text-[#8790a0]">Successful payment volume by receipt date.</p>
+                <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-muted-foreground">Collections</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Successful payment volume by receipt date.</p>
               </div>
-              <Button asChild variant="outline" size="sm" className="rounded-[9px] border-white/10 bg-white/[0.035]">
+              <Button asChild variant="outline" size="sm" className="rounded-[9px] border-border bg-card">
                 <Link href="/payments">
                   Payments
                   <ArrowRight className="size-4" />
@@ -258,7 +258,7 @@ export default function DashboardPage() {
             </div>
             <div className="h-[280px]">
               {loading ? (
-                <Skeleton className="h-full rounded-2xl bg-white/[0.06]" />
+                <Skeleton className="h-full rounded-2xl bg-muted/50" />
               ) : collectionsByDay.length === 0 ? (
                 <EmptyState title="No payments yet" body="Payments will appear here once invoices start getting paid." />
               ) : (
@@ -289,11 +289,11 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-5 shadow-[0_1px_1px_rgba(24,24,27,0.04)]">
+          <section className="rounded-[18px] border border-border bg-card p-5 shadow-[0_1px_1px_rgba(24,24,27,0.04)]">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-[#8790a0]">Needs attention</h2>
-                <p className="mt-1 text-sm text-[#8790a0]">Open work that needs a decision.</p>
+                <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-muted-foreground">Needs attention</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Open work that needs a decision.</p>
               </div>
               <span className="rounded-full border border-amber-300/25 bg-amber-400/10 px-2.5 py-1 text-xs font-semibold text-amber-300">
                 {attentionCount}
@@ -302,7 +302,7 @@ export default function DashboardPage() {
             <div className="mt-4 space-y-3">
               {loading ? (
                 Array.from({ length: 4 }).map((_, index) => (
-                  <Skeleton key={index} className="h-14 rounded-xl bg-white/[0.06]" />
+                  <Skeleton key={index} className="h-14 rounded-xl bg-muted/50" />
                 ))
               ) : (
                 <>
@@ -317,18 +317,18 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-5 shadow-[0_1px_1px_rgba(24,24,27,0.04)]">
+          <section className="rounded-[18px] border border-border bg-card p-5 shadow-[0_1px_1px_rgba(24,24,27,0.04)]">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-[#8790a0]">Recent payments</h2>
-                <p className="mt-1 text-sm text-[#8790a0]">Latest receipts across invoices.</p>
+                <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-muted-foreground">Recent payments</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Latest receipts across invoices.</p>
               </div>
               <Badge className="border-emerald-300/25 bg-emerald-400/10 text-emerald-300">
                 {money(stats.collected)}
               </Badge>
             </div>
             {loading ? (
-              <Skeleton className="h-40 rounded-2xl bg-white/[0.06]" />
+              <Skeleton className="h-40 rounded-2xl bg-muted/50" />
             ) : recentPayments.length === 0 ? (
               <EmptyState title="No receipts" body="Add payments from an invoice to start reconciliation." />
             ) : (
@@ -336,25 +336,25 @@ export default function DashboardPage() {
                 {recentPayments.map((payment) => (
                   <div key={payment.id} className="flex items-center justify-between py-3">
                     <div>
-                      <div className="font-medium text-[#f7f8fb]">Invoice #{payment.invoice_id}</div>
-                      <div className="text-sm text-[#8790a0]">
+                      <div className="font-medium text-foreground">Invoice #{payment.invoice_id}</div>
+                      <div className="text-sm text-muted-foreground">
                         {payment.payment_method.replace("_", " ")} · {shortDate(payment.paid_at)}
                       </div>
                     </div>
-                    <div className="font-semibold text-[#f7f8fb]">{money(payment.amount, payment.currency)}</div>
+                    <div className="font-semibold text-foreground">{money(payment.amount, payment.currency)}</div>
                   </div>
                 ))}
               </div>
             )}
           </section>
 
-          <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-5 shadow-[0_1px_1px_rgba(24,24,27,0.04)]">
+          <section className="rounded-[18px] border border-border bg-card p-5 shadow-[0_1px_1px_rgba(24,24,27,0.04)]">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-[#8790a0]">Workspace snapshot</h2>
-                <p className="mt-1 text-sm text-[#8790a0]">Small signals for the current account.</p>
+                <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-muted-foreground">Workspace snapshot</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Small signals for the current account.</p>
               </div>
-              <Users className="size-5 text-[#8790a0]" />
+              <Users className="size-5 text-muted-foreground" />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <MiniStat label="Customers" value={stats.activeCustomers} />
@@ -387,18 +387,18 @@ function Metric({
       ? "text-emerald-300"
       : tone === "warn"
         ? "text-amber-300"
-        : "text-[#f7f8fb]"
+        : "text-foreground"
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
+    <div className="rounded-2xl border border-border bg-muted/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
       <div className="flex items-start justify-between">
         <div>
-          <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#8790a0]">{label}</div>
+          <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
           <div className={`mt-2 text-2xl font-semibold tracking-[-0.05em] ${toneClass}`}>{value}</div>
         </div>
-        <Icon className="size-5 text-[#8790a0]" />
+        <Icon className="size-5 text-muted-foreground" />
       </div>
-      <div className="mt-2 text-sm text-[#8790a0]">{helper}</div>
+      <div className="mt-2 text-sm text-muted-foreground">{helper}</div>
     </div>
   )
 }
@@ -407,29 +407,29 @@ function ActionRow({ label, value, href }: { label: string; value: number; href:
   return (
     <Link
       href={href}
-      className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 transition hover:border-[#3f46d8]/25 hover:bg-white/[0.08]"
+      className="flex items-center justify-between rounded-xl border border-border bg-muted/35 px-3 py-3 transition hover:border-[#3f46d8]/25 hover:bg-muted/60"
     >
-      <span className="font-medium text-[#f7f8fb]">{label}</span>
-      <span className={value > 0 ? "font-semibold text-amber-300" : "text-[#8790a0]"}>{value}</span>
+      <span className="font-medium text-foreground">{label}</span>
+      <span className={value > 0 ? "font-semibold text-amber-300" : "text-muted-foreground"}>{value}</span>
     </Link>
   )
 }
 
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="flex h-full min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-black/15 bg-white/[0.03] p-6 text-center">
-      <CheckCircle2 className="mb-3 size-5 text-[#8790a0]" />
-      <div className="font-medium text-[#f7f8fb]">{title}</div>
-      <div className="mt-1 max-w-sm text-sm text-[#8790a0]">{body}</div>
+    <div className="flex h-full min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-black/15 bg-muted/35 p-6 text-center">
+      <CheckCircle2 className="mb-3 size-5 text-muted-foreground" />
+      <div className="font-medium text-foreground">{title}</div>
+      <div className="mt-1 max-w-sm text-sm text-muted-foreground">{body}</div>
     </div>
   )
 }
 
 function MiniStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-      <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#8790a0]">{label}</div>
-      <div className="mt-2 text-xl font-semibold tracking-[-0.04em] text-[#f7f8fb]">{value}</div>
+    <div className="rounded-xl border border-border bg-muted/35 p-3">
+      <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
+      <div className="mt-2 text-xl font-semibold tracking-[-0.04em] text-foreground">{value}</div>
     </div>
   )
 }

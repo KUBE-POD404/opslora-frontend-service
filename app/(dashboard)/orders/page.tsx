@@ -424,7 +424,7 @@ export default function OrdersPage() {
             description="Create orders, confirm sellable lines, and keep the order-to-invoice workflow moving."
             primaryAction={(
                 <Button
-                    className="h-10 rounded-[9px] bg-[#3f46d8] text-white hover:bg-[#4f57ef]"
+                    className="h-10 rounded-[9px]"
                     onClick={() => {
                         setEditingOrder(null)
                         setCustomerId("")
@@ -448,12 +448,12 @@ export default function OrdersPage() {
                 <PanelToolbar>
                 <div className="grid w-full gap-3 xl:grid-cols-[minmax(240px,1fr)_180px_240px_auto]">
                     <div className="relative">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#7d8797]" />
+                        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
                             placeholder="Search order, customer, status, amount"
-                            className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] pl-9"
+                            className="h-10 rounded-[9px] border-border bg-muted/40 pl-9"
                         />
                     </div>
 
@@ -464,7 +464,7 @@ export default function OrdersPage() {
                             setStatusFilter(value === "ALL" ? null : value)
                         }}
                     >
-                        <SelectTrigger className="h-10 w-full rounded-[9px] border-white/10 bg-white/[0.04]">
+                        <SelectTrigger className="h-10 w-full rounded-[9px] border-border bg-muted/40">
                             <SelectValue placeholder="All statuses" />
                         </SelectTrigger>
                         <SelectContent>
@@ -482,7 +482,7 @@ export default function OrdersPage() {
                             setCustomerFilter(value === "ALL" ? null : value)
                         }}
                     >
-                        <SelectTrigger className="h-10 w-full rounded-[9px] border-white/10 bg-white/[0.04]">
+                        <SelectTrigger className="h-10 w-full rounded-[9px] border-border bg-muted/40">
                             <SelectValue placeholder="All customers" />
                         </SelectTrigger>
                         <SelectContent>
@@ -497,7 +497,7 @@ export default function OrdersPage() {
 
                     <Button
                         variant="outline"
-                        className="h-10 rounded-[9px] border-white/10 bg-white/[0.04]"
+                        className="h-10 rounded-[9px] border-border bg-muted/40"
                         disabled={activeFilterCount === 0}
                         onClick={() => {
                             setStatusFilter(null)
@@ -512,7 +512,7 @@ export default function OrdersPage() {
                 </div>
                 </PanelToolbar>
 
-                <div className="flex flex-wrap gap-2 border-b border-white/10 bg-white/[0.04] px-3 py-3 text-xs">
+                <div className="flex flex-wrap gap-2 border-b border-border bg-muted/40 px-3 py-3 text-xs">
                     {[
                         ["ALL", "All"],
                         ["CREATED", "Draft"],
@@ -529,15 +529,15 @@ export default function OrdersPage() {
                                     setStatusFilter(value === "ALL" ? null : value)
                                 }}
                                 className={`rounded-full border px-3 py-1.5 transition ${active
-                                    ? "border-[#3f46d8]/30 bg-[#f4f4ff] text-[#3f46d8]"
-                                    : "border-white/10 bg-white/[0.04] text-[#8790a0] hover:text-[#f7f8fb]"
+                                    ? "border-primary/30 bg-primary/10 text-primary"
+                                    : "border-border bg-muted/40 text-muted-foreground hover:text-foreground"
                                     }`}
                             >
                                 {label}
                             </button>
                         )
                     })}
-                    <span className="ml-auto text-[#8790a0]">
+                    <span className="ml-auto text-muted-foreground">
                         Showing {filteredOrders.length} of {orders.length}
                     </span>
                 </div>
@@ -566,7 +566,7 @@ export default function OrdersPage() {
                         {!loading &&
                             filteredOrders.map(order => (
                                 <TableRow key={order.id}>
-                                    <TableCell className="font-medium text-[#12141a]">#{order.id}</TableCell>
+                                    <TableCell className="font-medium text-foreground">#{order.id}</TableCell>
                                     <TableCell>{customers.find(c => c.id === order.customer_id)?.name ?? "Unknown"}</TableCell>
                                     <TableCell>{money(order.total)}</TableCell>
                                     <TableCell>
@@ -633,8 +633,8 @@ export default function OrdersPage() {
                         {!loading && filteredOrders.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={5} className="py-12 text-center">
-                                    <div className="font-medium text-[#12141a]">No orders found</div>
-                                    <div className="text-sm text-[#6b707d]">Create an order once a customer and inventory item are ready.</div>
+                                    <div className="font-medium text-foreground">No orders found</div>
+                                    <div className="text-sm text-muted-foreground">Create an order once a customer and inventory item are ready.</div>
                                 </TableCell>
                             </TableRow>
                         )}

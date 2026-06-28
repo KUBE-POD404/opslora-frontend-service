@@ -198,7 +198,7 @@ export default function PaymentsPage() {
       title="Reconcile cash, refunds, and receipt history."
       description="See collected money, settlement status, refunds, and the full transaction trail."
       primaryAction={(
-        <Button variant="outline" className="h-10 rounded-[9px] border-white/10 bg-white/[0.04]" onClick={loadPayments}>
+        <Button variant="outline" className="h-10 rounded-[9px] border-border bg-muted/40" onClick={loadPayments}>
           <CreditCard className="size-4" />
           Refresh
         </Button>
@@ -215,9 +215,9 @@ export default function PaymentsPage() {
       <Panel>
         <PanelToolbar>
           <div className="relative w-full lg:max-w-sm">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#6b707d]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] pl-9"
+              className="h-10 rounded-[9px] border-border bg-muted/40 pl-9"
               placeholder="Search payment, invoice, or reference"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -225,7 +225,7 @@ export default function PaymentsPage() {
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] sm:w-[190px]">
+              <SelectTrigger className="h-10 rounded-[9px] border-border bg-muted/40 sm:w-[190px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -236,7 +236,7 @@ export default function PaymentsPage() {
               </SelectContent>
             </Select>
             <Select value={method} onValueChange={setMethod}>
-              <SelectTrigger className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] sm:w-[180px]">
+              <SelectTrigger className="h-10 rounded-[9px] border-border bg-muted/40 sm:w-[180px]">
                 <SelectValue placeholder="Method" />
               </SelectTrigger>
               <SelectContent>
@@ -270,14 +270,14 @@ export default function PaymentsPage() {
             {loading && (
               <TableRow>
                 <TableCell colSpan={9} className="py-10 text-center">
-                  <Loader2 className="mx-auto size-6 animate-spin text-[#6b707d]" />
+                  <Loader2 className="mx-auto size-6 animate-spin text-muted-foreground" />
                 </TableCell>
               </TableRow>
             )}
 
             {!loading && filteredPayments.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="py-10 text-center text-sm text-[#6b707d]">
+                <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
                   No payments found.
                 </TableCell>
               </TableRow>
@@ -286,9 +286,9 @@ export default function PaymentsPage() {
             {!loading &&
               filteredPayments.map((payment) => (
                 <TableRow key={payment.id}>
-                  <TableCell className="font-medium text-[#12141a]">
+                  <TableCell className="font-medium text-foreground">
                     #{payment.id}
-                    <div className="text-xs font-normal text-[#6b707d]">
+                    <div className="text-xs font-normal text-muted-foreground">
                       {payment.payment_type}
                     </div>
                   </TableCell>
@@ -327,7 +327,7 @@ export default function PaymentsPage() {
           </DialogHeader>
           {selectedPayment && (
             <div className="grid gap-4">
-              <div className="grid gap-3 rounded-lg border border-[#e0e4eb] bg-[#f8f9fa] p-4 md:grid-cols-3">
+              <div className="grid gap-3 rounded-lg border border-border bg-muted/40 p-4 md:grid-cols-3">
                 <Detail label="Invoice" value={`#${selectedPayment.invoice_id}`} />
                 <Detail label="Amount" value={money(selectedPayment)} />
                 <Detail label="Method" value={selectedPayment.payment_method.replace("_", " ")} />
@@ -335,7 +335,7 @@ export default function PaymentsPage() {
                 <Detail label="Provider" value={selectedPayment.gateway_provider || "-"} />
                 <Detail label="Status" value={<StatusBadge status={selectedPayment.status} />} />
               </div>
-              <div className="rounded-lg border border-[#e0e4eb]">
+              <div className="rounded-lg border border-border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -350,13 +350,13 @@ export default function PaymentsPage() {
                     {transactionsLoading && (
                       <TableRow>
                         <TableCell colSpan={5} className="py-8 text-center">
-                          <Loader2 className="mx-auto size-5 animate-spin text-[#6b707d]" />
+                          <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
                         </TableCell>
                       </TableRow>
                     )}
                     {!transactionsLoading && transactions.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="py-8 text-center text-sm text-[#6b707d]">
+                        <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
                           No transactions found.
                         </TableCell>
                       </TableRow>
@@ -419,7 +419,7 @@ export default function PaymentsPage() {
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid gap-2">
-      <Label className="text-xs font-medium text-[#636973]">{label}</Label>
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
       {children}
     </div>
   )
@@ -428,10 +428,10 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 function Detail({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
-      <div className="text-xs font-medium uppercase tracking-normal text-[#6b707d]">
+      <div className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
         {label}
       </div>
-      <div className="mt-1 text-sm font-medium text-[#12141a]">{value}</div>
+      <div className="mt-1 text-sm font-medium text-foreground">{value}</div>
     </div>
   )
 }

@@ -295,7 +295,7 @@ export default function InventoryPage() {
       title="Keep stock, SKUs, and sellable items ready."
       description="Track product catalog health, low-stock signals, prices, and manual adjustments before an order becomes a problem."
       primaryAction={(
-        <Button className="h-10 rounded-[9px] bg-[#3f46d8] text-white hover:bg-[#4f57ef]" onClick={openCreateProduct}>
+        <Button className="h-10 rounded-[9px]" onClick={openCreateProduct}>
           <PackagePlus className="size-4" />
           New product
         </Button>
@@ -311,9 +311,9 @@ export default function InventoryPage() {
       <Panel>
         <PanelToolbar>
           <div className="relative w-full md:max-w-sm">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#6b707d]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              className="h-10 rounded-[9px] border-white/10 bg-white/[0.04] pl-9"
+              className="h-10 rounded-[9px] border-border bg-muted/40 pl-9"
               placeholder="Search product, SKU, or HSN"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -347,14 +347,14 @@ export default function InventoryPage() {
             {loading && (
               <TableRow>
                 <TableCell colSpan={9} className="py-10 text-center">
-                  <Loader2 className="mx-auto size-6 animate-spin text-[#6b707d]" />
+                  <Loader2 className="mx-auto size-6 animate-spin text-muted-foreground" />
                 </TableCell>
               </TableRow>
             )}
 
             {!loading && filteredProducts.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="py-10 text-center text-sm text-[#6b707d]">
+                <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
                   No products found.
                 </TableCell>
               </TableRow>
@@ -371,8 +371,8 @@ export default function InventoryPage() {
                 return (
                   <TableRow key={product.id}>
                     <TableCell>
-                      <div className="font-medium text-[#12141a]">{product.name}</div>
-                      <div className="max-w-[280px] truncate text-xs text-[#6b707d]">
+                      <div className="font-medium text-foreground">{product.name}</div>
+                      <div className="max-w-[280px] truncate text-xs text-muted-foreground">
                         {product.description || "No description"}
                       </div>
                     </TableCell>
@@ -483,9 +483,9 @@ export default function InventoryPage() {
             <DialogTitle>Adjust stock</DialogTitle>
           </DialogHeader>
           <form className="grid gap-4" onSubmit={handleStockAdjustment}>
-            <div className="rounded-md border border-[#e0e4eb] bg-[#f8f9fa] p-3">
+            <div className="rounded-md border border-border bg-muted/40 p-3">
               <div className="font-medium">{stockProduct?.name}</div>
-              <div className="text-sm text-[#6b707d]">
+              <div className="text-sm text-muted-foreground">
                 Current stock: {stockProduct ? quantity(stockByProduct[stockProduct.id]?.quantity_on_hand || 0) : "-"}
               </div>
             </div>
@@ -525,7 +525,7 @@ export default function InventoryPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid gap-2">
-      <Label className="text-xs font-medium text-[#636973]">{label}</Label>
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
       {children}
     </div>
   )

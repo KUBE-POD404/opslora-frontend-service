@@ -164,9 +164,9 @@ export default function ReportsPage() {
   }, [invoices, orders, payments, products, stockByProduct])
 
   return (
-    <div className="-m-4 min-h-[calc(100svh-var(--header-height))] bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.16),transparent_34%),linear-gradient(180deg,#080b12,#0b0f15)] p-4 text-[#f7f8fb] md:p-6">
+    <div className="-m-4 min-h-[calc(100svh-var(--header-height))] bg-background p-4 text-foreground md:p-6">
       <div className="mx-auto max-w-7xl space-y-5">
-        <section className="rounded-[28px] border border-white/10 bg-white/[0.035] p-6 shadow-[0_24px_90px_rgba(0,0,0,.28)] md:p-8">
+        <section className="rounded-[28px] border border-border bg-card p-6 shadow-[0_24px_90px_rgba(0,0,0,.28)] md:p-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <Badge className="border-sky-300/20 bg-sky-300/10 text-sky-200" variant="outline">
@@ -175,7 +175,7 @@ export default function ReportsPage() {
               <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.06em] md:text-6xl">
                 Calm operating intelligence, separate from the dashboard.
               </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-[#9aa4b2] md:text-base">
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
                 Trends, risk, collections, and customer concentration in a minimal reporting workspace.
               </p>
             </div>
@@ -220,11 +220,11 @@ export default function ReportsPage() {
                 </PieChart>
               </ResponsiveContainer>
             </ChartFrame>
-            <div className="grid gap-2 px-6 pb-6 text-xs text-[#9aa4b2] sm:grid-cols-2">
+            <div className="grid gap-2 px-6 pb-6 text-xs text-muted-foreground sm:grid-cols-2">
               {report.invoiceStatus.map((item, index) => (
-                <div key={item.name} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                <div key={item.name} className="flex items-center justify-between rounded-lg border border-border bg-muted/35 px-3 py-2">
                   <span className="flex items-center gap-2"><span className="size-2 rounded-full" style={{ background: STATUS_COLORS[index % STATUS_COLORS.length] }} />{item.name}</span>
-                  <strong className="text-[#f7f8fb]">{item.value}</strong>
+                  <strong className="text-foreground">{item.value}</strong>
                 </div>
               ))}
             </div>
@@ -261,12 +261,12 @@ export default function ReportsPage() {
           </ChartCard>
         </div>
 
-        <Card className="border-white/10 bg-white/[0.035] text-[#f7f8fb] shadow-[0_24px_80px_rgba(0,0,0,.18)]">
+        <Card className="border-border bg-card text-foreground shadow-[0_24px_80px_rgba(0,0,0,.18)]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base"><AlertTriangle className="size-4 text-amber-300" /> Report notes</CardTitle>
             <CardDescription>Minimal decision signals pulled from live tenant APIs.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 text-sm text-[#9aa4b2] md:grid-cols-3">
+          <CardContent className="grid gap-3 text-sm text-muted-foreground md:grid-cols-3">
             <Insight label="Receivable pressure" value={report.receivables > 0 ? `${money(report.receivables)} still open` : "No open receivables"} />
             <Insight label="Inventory risk" value={report.lowStockProducts.length > 0 ? `${report.lowStockProducts.length} product(s) at threshold` : "No low-stock products loaded"} />
             <Insight label="Reporting window" value="Latest 100 invoices, orders, and products" />
@@ -286,16 +286,16 @@ const tooltipStyle = {
 
 function ReportStat({ icon: Icon, label, value, loading }: Readonly<{ icon: React.ComponentType<{ className?: string }>; label: string; value: string | number; loading: boolean }>) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#9aa4b2]"><Icon className="size-3.5" /> {label}</div>
-      {loading ? <Skeleton className="mt-3 h-7 bg-white/[0.08]" /> : <div className="mt-2 text-xl font-semibold tracking-tight text-[#f7f8fb]">{value}</div>}
+    <div className="rounded-2xl border border-border bg-muted/30 p-3">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground"><Icon className="size-3.5" /> {label}</div>
+      {loading ? <Skeleton className="mt-3 h-7 bg-muted/60" /> : <div className="mt-2 text-xl font-semibold tracking-tight text-foreground">{value}</div>}
     </div>
   )
 }
 
 function ChartCard({ title, description, children }: Readonly<{ title: string; description: string; children: React.ReactNode }>) {
   return (
-    <Card className="overflow-hidden border-white/10 bg-white/[0.035] text-[#f7f8fb] shadow-[0_24px_80px_rgba(0,0,0,.18)]">
+    <Card className="overflow-hidden border-border bg-card text-foreground shadow-[0_24px_80px_rgba(0,0,0,.18)]">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
@@ -308,8 +308,8 @@ function ChartCard({ title, description, children }: Readonly<{ title: string; d
 function ChartFrame({ loading, empty, emptyText, children }: Readonly<{ loading: boolean; empty: boolean; emptyText: string; children: React.ReactNode }>) {
   return (
     <CardContent>
-      <div className="h-[310px] rounded-2xl border border-white/10 bg-black/20 p-3">
-        {loading ? <Skeleton className="h-full rounded-xl bg-white/[0.08]" /> : empty ? <div className="flex h-full items-center justify-center text-sm text-[#9aa4b2]">{emptyText}</div> : children}
+      <div className="h-[310px] rounded-2xl border border-border bg-muted/30 p-3">
+        {loading ? <Skeleton className="h-full rounded-xl bg-muted/60" /> : empty ? <div className="flex h-full items-center justify-center text-sm text-muted-foreground">{emptyText}</div> : children}
       </div>
     </CardContent>
   )
@@ -317,9 +317,9 @@ function ChartFrame({ loading, empty, emptyText, children }: Readonly<{ loading:
 
 function Insight({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+    <div className="rounded-2xl border border-border bg-muted/30 p-4">
       <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[#7dd3fc]">{label}</div>
-      <div className="mt-2 text-[#f7f8fb]">{value}</div>
+      <div className="mt-2 text-foreground">{value}</div>
     </div>
   )
 }
