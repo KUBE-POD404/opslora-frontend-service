@@ -16,74 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { apiFetch } from "@/lib/api"
-
-type InvoiceLine = {
-  id: number
-  sku?: string | null
-  product_name: string
-  hsn_sac_code?: string | null
-  unit_of_measure?: string | null
-  quantity: number
-  unit_price: number
-  tax_rate: number
-  taxable_value: number
-  tax_amount: number
-  line_total: number
-}
-
-type InvoiceTaxSummary = {
-  tax_component: string
-  tax_rate: number
-  taxable_value: number
-  tax_amount: number
-}
-
-type Invoice = {
-  id: number
-  invoice_number?: string | null
-  invoice_template_key?: string | null
-  order_id: number
-  customer_id?: number | null
-  customer_name?: string | null
-  customer_email?: string | null
-  customer_gstin?: string | null
-  customer_place_of_supply?: string | null
-  seller_legal_name?: string | null
-  seller_display_name?: string | null
-  seller_email?: string | null
-  seller_phone?: string | null
-  seller_tax_id?: string | null
-  seller_address?: string | null
-  seller_country?: string | null
-  seller_state?: string | null
-  invoice_terms?: string | null
-  invoice_footer?: string | null
-  round_off_enabled: boolean
-  subtotal: number
-  tax: number
-  total: number
-  due_date: string
-  status: string
-  discount_type?: string | null
-  discount_value: number
-  created_at: string
-  lines: InvoiceLine[]
-  tax_summary: InvoiceTaxSummary[]
-}
-
-type Payment = {
-  id: number
-  invoice_id: number
-  amount: number
-  currency: string
-  payment_method: string
-  payment_type: string
-  status: string
-  reference_number?: string | null
-  gateway_provider?: string | null
-  paid_at: string
-  note?: string | null
-}
+import { downloadInvoiceHtml, type DownloadableInvoice as Invoice, type DownloadablePayment as Payment } from "@/lib/invoice-download"
 
 function money(value: number, currency = "INR") {
   const prefix = currency === "INR" ? "Rs" : currency
@@ -105,7 +38,7 @@ function statusClass(status: string) {
   return "border-amber-200 bg-amber-50 text-amber-700"
 }
 
-function Field({ label, value }: { label: string; value?: string | number | null }) {
+function Field({ label, value }: Readonly<{ label: string; value?: string | number | null }>) {
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">{label}</p>
@@ -208,13 +141,19 @@ export default function InvoiceViewPage() {
               Add payment
             </Button>
           )}
-          <Button variant="outline" onClick={() => window.print()}>
+          <Button variant="outline" onClick={() => globalThis.print()}>
             <Printer className="size-4" />
             Print
           </Button>
-          <Button variant="secondary" disabled title="PDF export will be wired after print layout is finalized">
+          <Button
+            variant="secondary"
+            onClick={() => {
+              downloadInvoiceHtml(invoice, payments)
+              toast.success(`${invoiceLabel} invoice downloaded`)
+            }}
+          >
             <Download className="size-4" />
-            Download / print
+            Download invoice
           </Button>
         </div>
       </div>
@@ -398,7 +337,7 @@ export default function InvoiceViewPage() {
   )
 }
 
-function Metric({ label, value, helper }: { label: string; value: string; helper: string }) {
+function Metric({ label, value, helper }: Readonly<{ label: string; value: string; helper: string }>) {
   return (
     <div className="rounded-lg border border-border bg-muted/40 p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
@@ -408,7 +347,7 @@ function Metric({ label, value, helper }: { label: string; value: string; helper
   )
 }
 
-function TotalRow({ label, value, muted = false }: { label: string; value: string; muted?: boolean }) {
+function TotalRow({ label, value, muted = false }: Readonly<{ label: string; value: string; muted?: boolean }>) {
   return (
     <div className={`flex justify-between text-sm ${muted ? "text-muted-foreground" : ""}`}>
       <span>{label}</span>
@@ -417,7 +356,7 @@ function TotalRow({ label, value, muted = false }: { label: string; value: strin
   )
 }
 
-function TextPanel({ title, value }: { title: string; value?: string | null }) {
+function TextPanel({ title, value }: Readonly<{ title: string; value?: string | null }>) {
   return (
     <div className="rounded-lg border border-border bg-muted/40 p-5">
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-normal text-muted-foreground">{title}</h2>
