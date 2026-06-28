@@ -203,6 +203,7 @@ export default function PaymentsPage() {
           Refresh
         </Button>
       )}
+      showHero={false}
     >
       <div className="grid gap-3 md:grid-cols-4">
         <MetricCard label="Collected" value={`Rs ${metrics.amount.toFixed(2)}`} helper="Successful receipts" tone="ok" />

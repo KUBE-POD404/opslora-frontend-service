@@ -300,6 +300,7 @@ export default function InventoryPage() {
           New product
         </Button>
       )}
+      showHero={false}
     >
       <div className="grid gap-3 md:grid-cols-3">
         <MetricCard label="Total SKUs" value={metrics.totalSkus} helper="Catalog size" />

@@ -9,6 +9,7 @@ type OperationsPageProps = {
   description: string
   primaryAction?: ReactNode
   children: ReactNode
+  showHero?: boolean
 }
 
 export function OperationsPage({
@@ -17,29 +18,34 @@ export function OperationsPage({
   description,
   primaryAction,
   children,
+  showHero = true,
 }: OperationsPageProps) {
   return (
     <div className="-m-4 min-h-[calc(100svh-var(--header-height))] bg-[#070b16] p-4 text-[#f7f8fb] [font-feature-settings:'cv01','ss03'] md:p-6">
       <div className="mx-auto max-w-7xl space-y-5">
-        <section className="overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.035] shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur">
-          <div className="p-5 md:p-7">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[#8790a0]">
-                  <span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.12)]" />
-                  {eyebrow}
+        {showHero ? (
+          <section className="overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.035] shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur">
+            <div className="p-5 md:p-7">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[#8790a0]">
+                    <span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.12)]" />
+                    {eyebrow}
+                  </div>
+                  <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-none tracking-[-0.06em] text-balance text-[#f7f8fb] md:text-5xl">
+                    {title}
+                  </h1>
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-[#9aa4b2] md:text-base">
+                    {description}
+                  </p>
                 </div>
-                <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-none tracking-[-0.06em] text-balance text-[#f7f8fb] md:text-5xl">
-                  {title}
-                </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-[#9aa4b2] md:text-base">
-                  {description}
-                </p>
+                {primaryAction ? <div className="shrink-0">{primaryAction}</div> : null}
               </div>
-              {primaryAction ? <div className="shrink-0">{primaryAction}</div> : null}
             </div>
-          </div>
-        </section>
+          </section>
+        ) : primaryAction ? (
+          <div className="flex justify-end">{primaryAction}</div>
+        ) : null}
         {children}
       </div>
     </div>

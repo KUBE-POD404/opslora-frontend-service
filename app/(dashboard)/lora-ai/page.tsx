@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Bot, ClipboardList, Loader2, MessageSquareText, RefreshCw, Send, ShieldCheck, Sparkles } from "lucide-react"
+import { Bot, ClipboardList, Loader2, RefreshCw, Send, ShieldCheck, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
@@ -132,9 +132,6 @@ function money(value: number | string | undefined | null) {
 }
 
 
-function topItems<T>(items: T[], count = 6) {
-  return items.slice(0, count)
-}
 
 function renderInlineMarkdown(text: string) {
   const nodes: React.ReactNode[] = []
@@ -372,56 +369,6 @@ function ProviderStatusContent({
   ))
 }
 
-function LoraConsentGate({
-  canManageLoraConsent,
-  consentSaving,
-  organizationSettingsLoaded,
-  onEnableConsent,
-}: Readonly<{
-  canManageLoraConsent: boolean
-  consentSaving: boolean
-  organizationSettingsLoaded: boolean
-  onEnableConsent: () => void
-}>) {
-  return (
-    <section className="rounded-[18px] border border-amber-300/25 bg-amber-400/10 p-6 shadow-[0_16px_50px_rgba(0,0,0,0.16)]">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-200/30 bg-amber-100/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-amber-100">
-            <ShieldCheck className="size-4" /> Admin consent required
-          </div>
-          <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-amber-50">Lora AI is off for this organization.</h2>
-          <p className="mt-3 text-sm leading-7 text-amber-50/80">
-            To use Ask Lora or generate AI briefings, an admin must consent to share organization data with Lora AI. Until then, this page will not send live Opslora data, save operations snapshots, or call Lora chat for this organization.
-          </p>
-          <ul className="mt-4 space-y-2 text-sm leading-6 text-amber-50/75">
-            <li>• Data that may be shared after consent: customers, orders, invoices, payments, products, inventory stock, and generated operations snapshots.</li>
-            <li>• Consent is organization-wide and can be turned off later from Settings → Lora AI consent.</li>
-            <li>• Existing deterministic app pages still work without Lora AI.</li>
-          </ul>
-        </div>
-        <div className="w-full rounded-2xl border border-amber-200/20 bg-[#080b18]/60 p-4 lg:w-80">
-          {canManageLoraConsent ? (
-            <>
-              <p className="text-sm leading-6 text-amber-50/80">As an admin, you can enable Lora AI for this organization.</p>
-              <Button
-                className="mt-4 w-full rounded-2xl bg-amber-200 text-[#17120a] hover:bg-amber-100"
-                disabled={consentSaving || !organizationSettingsLoaded}
-                onClick={onEnableConsent}
-              >
-                {consentSaving ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
-                I consent, enable Lora AI
-              </Button>
-            </>
-          ) : (
-            <p className="text-sm leading-6 text-amber-50/80">Ask an organization admin to enable Lora AI consent in Settings → Lora AI consent.</p>
-          )}
-        </div>
-      </div>
-    </section>
-  )
-}
-
 export default function LoraAiPage() { // NOSONAR - page orchestrates consent, provider status, and chat state; complex UI is split into child components
   const { user } = useAuth()
   const [organizationSettings, setOrganizationSettings] = useState<OrganizationSettings | null>(null)
@@ -626,219 +573,173 @@ export default function LoraAiPage() { // NOSONAR - page orchestrates consent, p
   }
 
   return (
-    <div className="-m-4 min-h-[calc(100svh-var(--header-height))] bg-[#070b16] p-4 text-[#f7f8fb] md:p-6">
-      <div className="mx-auto max-w-7xl space-y-5">
-        <section className="overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.035] shadow-[0_18px_60px_rgba(0,0,0,0.24)]">
-          <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_380px]">
-            <div className="p-5 md:p-7">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[#8790a0]">
-                <Bot className="size-4" /> Lora AI workspace
-              </div>
-              <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-none tracking-[-0.06em] text-balance md:text-5xl">
-                Opt in before Lora AI can use organization data.
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-[#9aa4b2] md:text-base">
-                Lora AI is disabled by default. An organization admin must consent before Opslora shares live customers, orders, invoices, payments, inventory, or snapshots with Lora AI.
-              </p>
-            </div>
-            <aside className="border-t border-white/10 bg-[#0d1220] p-5 lg:border-l lg:border-t-0 md:p-7">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#8790a0]">Provider status</div>
-                  <h2 className="mt-3 text-2xl font-semibold tracking-[-0.05em]">Live Lora backend</h2>
-                </div>
-                <Sparkles className="size-5 text-indigo-300" />
-              </div>
-              <div className="mt-5 space-y-2">
-                <ProviderStatusContent
-                  loraConsentEnabled={loraConsentEnabled}
-                  providersLoading={providersLoading}
-                  providersError={providersError}
-                  providers={providers}
-                />
-              </div>
-            </aside>
-          </div>
-        </section>
-
-        {(notice || error) && (
-          <div className={`rounded-2xl border p-4 text-sm ${error ? "border-rose-300/25 bg-rose-400/10 text-rose-200" : "border-emerald-300/25 bg-emerald-400/10 text-emerald-200"}`}>
-            {error ?? notice}
-          </div>
-        )}
-
-
-        {settingsLoading ? (
-          <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-5 text-sm text-[#cbd5e1]">
-            <div className="flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> Loading Lora AI consent settings...</div>
-          </section>
-        ) : null}
-
-        {!settingsLoading && !loraConsentEnabled ? (
-          <LoraConsentGate
-            canManageLoraConsent={canManageLoraConsent}
-            consentSaving={consentSaving}
-            organizationSettingsLoaded={Boolean(organizationSettings)}
-            onEnableConsent={enableLoraConsent}
-          />
-        ) : null}
-
-        {loraConsentEnabled ? (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-5 shadow-[0_16px_50px_rgba(0,0,0,0.16)]">
+    <div className="-m-4 min-h-[calc(100svh-var(--header-height))] bg-[#050814] p-3 text-[#f7f8fb] md:p-5">
+      <div className="mx-auto grid max-w-7xl gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="flex min-h-[calc(100svh-var(--header-height)-2.5rem)] flex-col overflow-hidden rounded-[22px] border border-white/10 bg-[#080c18] shadow-[0_18px_70px_rgba(0,0,0,0.32)]">
+          <header className="flex flex-col gap-3 border-b border-white/10 bg-white/[0.025] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <MessageSquareText className="size-5 text-indigo-300" />
+              <div className="flex size-10 items-center justify-center rounded-2xl border border-indigo-300/20 bg-indigo-400/10 text-indigo-200">
+                <Bot className="size-5" />
+              </div>
               <div>
-                <h2 className="text-lg font-semibold tracking-[-0.03em]">Ask Lora</h2>
-                <p className="text-sm text-[#8790a0]">Ask Lora about the current organization context and the latest operations snapshot.</p>
+                <h1 className="text-base font-semibold tracking-[-0.02em] text-[#f7f8fb]">Lora AI terminal</h1>
+                <p className="text-xs text-[#8790a0]">Hermes CLI feel, ChatGPT-style conversation, Opslora-aware answers.</p>
               </div>
             </div>
-
-            <div className="mt-5 min-h-80 space-y-3 rounded-2xl border border-white/10 bg-[#050814] p-4">
-              {chatTurns.length === 0 ? (
-                <div className="flex min-h-64 flex-col items-center justify-center text-center text-sm text-[#8790a0]">
-                  <Bot className="mb-3 size-8 text-indigo-300" />
-                  Choose a prompt or ask Lora what needs attention today.
-                </div>
-              ) : (
-                chatTurns.map((turn, index) => (
-                  <div key={`${turn.role}-${index}`} className={turn.role === "user" ? "ml-auto max-w-[85%]" : "mr-auto max-w-[90%]"}>
-                    <div className={turn.role === "user" ? "rounded-2xl bg-[#3f46d8] p-4 text-sm leading-6 text-white" : "rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm leading-6 text-[#d9e2ee]"}>
-                      {turn.role === "assistant" ? <MarkdownMessage content={turn.content} /> : turn.content}
-                    </div>
-                    {turn.meta ? <div className="mt-1 px-2 text-xs text-[#8790a0]">{turn.meta}</div> : null}
-                    {turn.citations && turn.citations.length > 0 ? (
-                      <div className="mt-2 space-y-2">
-                        {turn.citations.map((citation) => (
-                          <div key={citation.chunk_id} className="rounded-xl border border-indigo-300/20 bg-indigo-400/10 p-3 text-xs leading-5 text-indigo-100">
-                            <div className="mb-1 font-semibold">Citation {citation.chunk_index + 1}</div>
-                            {citation.snippet}
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                ))
-              )}
-              {chatLoading ? (
-                <div className="mr-auto inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-[#cbd5e1]">
-                  <Loader2 className="size-4 animate-spin" /> Lora is thinking...
-                </div>
-              ) : null}
+            <div className="flex items-center gap-2 text-xs text-[#9aa4b2]">
+              <span className={loraConsentEnabled ? "size-2 rounded-full bg-emerald-300" : "size-2 rounded-full bg-amber-300"} />
+              {loraConsentEnabled ? "Organization data enabled" : "Chat locked until admin consent"}
             </div>
+          </header>
 
-            <div className="mt-4 flex flex-col gap-3 lg:flex-row">
-              <textarea
-                value={message}
-                onChange={(event) => setMessage(event.target.value)}
-                className="min-h-24 flex-1 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm leading-6 text-[#f7f8fb] outline-none placeholder:text-[#8790a0] focus:border-indigo-300/40"
-                placeholder="Ask Lora what needs attention today..."
-              />
+          {(notice || error) && (
+            <div className={`mx-4 mt-4 rounded-2xl border p-3 text-sm ${error ? "border-rose-300/25 bg-rose-400/10 text-rose-200" : "border-emerald-300/25 bg-emerald-400/10 text-emerald-200"}`}>
+              {error ?? notice}
+            </div>
+          )}
+
+          <div className="flex-1 space-y-4 overflow-y-auto p-4">
+            {settingsLoading ? (
+              <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-[#cbd5e1]"><Loader2 className="size-4 animate-spin" /> Loading Lora AI settings...</div>
+            ) : null}
+
+            {!settingsLoading && !loraConsentEnabled ? (
+              <div className="mx-auto mt-8 max-w-2xl rounded-[20px] border border-amber-300/20 bg-amber-400/10 p-5 text-sm leading-6 text-amber-50">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] text-amber-100"><ShieldCheck className="size-4" /> Admin consent needed</div>
+                <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-amber-50">Lora is ready, but organization data sharing is off.</h2>
+                <p className="mt-2 text-amber-50/75">Enable consent only when this organization is ready to share Opslora customers, orders, invoices, payments, inventory, and operations snapshots with Lora AI.</p>
+                {canManageLoraConsent ? (
+                  <Button
+                    className="mt-4 rounded-2xl bg-amber-200 text-[#17120a] hover:bg-amber-100"
+                    disabled={consentSaving || !organizationSettings}
+                    onClick={enableLoraConsent}
+                  >
+                    {consentSaving ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
+                    Enable Lora AI for this organization
+                  </Button>
+                ) : (
+                  <p className="mt-4 text-xs text-amber-50/70">Ask an organization admin to enable Lora AI in Settings.</p>
+                )}
+              </div>
+            ) : null}
+
+            {loraConsentEnabled && chatTurns.length === 0 ? (
+              <div className="mx-auto mt-10 max-w-2xl text-center">
+                <div className="mx-auto flex size-14 items-center justify-center rounded-[20px] border border-indigo-300/20 bg-indigo-400/10 text-indigo-200"><Sparkles className="size-6" /></div>
+                <h2 className="mt-4 text-3xl font-semibold tracking-[-0.05em] text-[#f7f8fb]">Ask Lora what needs attention.</h2>
+                <p className="mt-2 text-sm leading-6 text-[#9aa4b2]">Use the prompt line below like a terminal, or generate a live operations briefing first.</p>
+              </div>
+            ) : null}
+
+            {loraConsentEnabled ? chatTurns.map((turn, index) => (
+              <div key={`${turn.role}-${index}`} className={turn.role === "user" ? "ml-auto max-w-[82%]" : "mr-auto max-w-[88%]"}>
+                <div className={turn.role === "user" ? "rounded-[20px] bg-[#3f46d8] p-4 text-sm leading-6 text-white" : "rounded-[20px] border border-white/10 bg-white/[0.045] p-4 font-mono text-sm leading-6 text-[#d9e2ee]"}>
+                  {turn.role === "assistant" ? <MarkdownMessage content={turn.content} /> : turn.content}
+                </div>
+                {turn.meta ? <div className="mt-1 px-2 text-xs text-[#8790a0]">{turn.meta}</div> : null}
+                {turn.citations && turn.citations.length > 0 ? (
+                  <div className="mt-2 space-y-2">
+                    {turn.citations.map((citation) => (
+                      <div key={citation.chunk_id} className="rounded-xl border border-indigo-300/20 bg-indigo-400/10 p-3 text-xs leading-5 text-indigo-100">
+                        <div className="mb-1 font-semibold">Citation {citation.chunk_index + 1}</div>
+                        {citation.snippet}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            )) : null}
+
+            {chatLoading ? (
+              <div className="mr-auto inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-4 font-mono text-sm text-[#cbd5e1]"><Loader2 className="size-4 animate-spin" /> lora is thinking...</div>
+            ) : null}
+          </div>
+
+          <div className="border-t border-white/10 bg-[#070b16] p-3">
+            <div className="flex flex-col gap-2 rounded-[18px] border border-white/10 bg-[#030712] p-2 md:flex-row md:items-end">
+              <label className="flex flex-1 items-start gap-2 px-2 py-1 font-mono text-sm text-[#9aa4b2]">
+                <span className="pt-2 text-emerald-300">hermes$</span>
+                <textarea
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                  className="min-h-12 flex-1 resize-none bg-transparent py-2 text-[#f7f8fb] outline-none placeholder:text-[#6f7887]"
+                  placeholder="Ask Lora what needs attention today..."
+                  disabled={!loraConsentEnabled || chatLoading}
+                />
+              </label>
               <Button
-                className="h-auto min-h-12 rounded-2xl bg-[#3f46d8] px-5 text-white hover:bg-[#4f57ef]"
-                disabled={chatLoading}
+                className="rounded-2xl bg-[#3f46d8] px-5 text-white hover:bg-[#4f57ef]"
+                disabled={!loraConsentEnabled || chatLoading}
                 onClick={() => askLora()}
               >
                 {chatLoading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-                Ask
+                Send
               </Button>
             </div>
+            {loraConsentEnabled ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {promptLibrary.slice(0, 3).map((prompt) => (
+                  <button
+                    key={prompt}
+                    className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-xs text-[#cbd5e1] transition hover:border-indigo-300/30 hover:bg-indigo-400/10"
+                    onClick={() => askLora(prompt)}
+                    disabled={chatLoading}
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </section>
 
-            <div className="mt-4 grid gap-2 md:grid-cols-2">
-              {promptLibrary.map((prompt) => (
-                <button
-                  key={prompt}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-left text-sm leading-6 text-[#d9e2ee] transition hover:border-indigo-300/30 hover:bg-indigo-400/10"
-                  onClick={() => askLora(prompt)}
-                  disabled={chatLoading}
-                >
-                  <span className="mr-2 text-[#8790a0]">Ask</span>{prompt}
-                </button>
-              ))}
+        <aside className="space-y-4">
+          <section className="rounded-[20px] border border-white/10 bg-white/[0.035] p-4 shadow-[0_16px_50px_rgba(0,0,0,0.18)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#8790a0]">Provider</div>
+                <h2 className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[#f7f8fb]">Backend status</h2>
+              </div>
+              <Sparkles className="size-5 text-indigo-300" />
+            </div>
+            <div className="mt-4 space-y-2">
+              <ProviderStatusContent loraConsentEnabled={loraConsentEnabled} providersLoading={providersLoading} providersError={providersError} providers={providers} />
             </div>
           </section>
 
-          <aside className="space-y-5">
-            <section className="rounded-[18px] border border-indigo-300/20 bg-indigo-400/10 p-5 shadow-[0_16px_50px_rgba(0,0,0,0.16)]">
+          {loraConsentEnabled ? (
+            <section className="rounded-[20px] border border-indigo-300/20 bg-indigo-400/10 p-4 shadow-[0_16px_50px_rgba(0,0,0,0.18)]">
               <div className="flex items-center gap-3">
                 <ClipboardList className="size-5 text-indigo-200" />
                 <div>
-                  <h2 className="text-lg font-semibold tracking-[-0.03em]">Daily operations briefing</h2>
-                  <p className="text-sm text-indigo-100/75">Pull live Opslora data, save it as Lora context, and ask for the day&apos;s priorities.</p>
+                  <h2 className="text-base font-semibold tracking-[-0.03em] text-[#f7f8fb]">Operations briefing</h2>
+                  <p className="text-xs text-indigo-100/75">Refresh live Opslora facts before asking Lora.</p>
                 </div>
               </div>
               {snapshotSummary ? (
-                <div className="mt-4 space-y-3">
-                  <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-3 text-xs text-emerald-50">
-                    <div className="font-semibold uppercase tracking-[0.08em] text-emerald-200/80">Deterministic snapshot summary</div>
-                    <p className="mt-1 leading-5 text-emerald-50/80">
-                      These metrics come directly from Opslora APIs before Lora writes commentary. Treat this panel as the source of truth for counts and amounts.
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Active customers</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.activeCustomers}</div></div>
-                    <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Amount due</div><div className="mt-1 text-lg font-semibold">{money(snapshotSummary.amountDue)}</div></div>
-                    <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Open invoices</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.openInvoiceCount}</div></div>
-                    <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Overdue</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.overdueInvoiceCount}</div></div>
-                    <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">To invoice</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.ordersToInvoiceCount}</div></div>
-                    <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Low stock</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.lowStockCount}</div></div>
-                  </div>
-                  <div className="rounded-2xl border border-amber-300/20 bg-amber-400/10 p-3 text-xs leading-5 text-amber-50">
-                    <div className="font-semibold text-amber-100">Recommended actions</div>
-                    <p className="mt-1 text-amber-50/75">
-                      Deterministic next steps from the structured briefing endpoint. Use these before Lora prose if the model wording conflicts.
-                    </p>
-                    <ul className="mt-2 space-y-1">
-                      {snapshotSummary.recommendedActions.map((action) => (
-                        <li key={action}>• {action}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-[#d9e2ee]">
-                    <div className="font-semibold text-[#f7f8fb]">Top overdue/open invoices</div>
-                    {snapshotSummary.overdueInvoices.length ? (
-                      <ul className="mt-2 space-y-1">
-                        {topItems(snapshotSummary.overdueInvoices, 3).map((invoice) => (
-                          <li key={invoice.id}>Invoice {invoice.invoice_number ?? invoice.id} · {invoice.customer_name ?? "unknown customer"} · {money(invoice.total)} · {invoice.status}</li>
-                        ))}
-                      </ul>
-                    ) : <p className="mt-2 text-[#8790a0]">None in the loaded snapshot.</p>}
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-[#d9e2ee]">
-                    <div className="font-semibold text-[#f7f8fb]">Confirmed orders ready to invoice</div>
-                    {snapshotSummary.ordersToInvoice.length ? (
-                      <ul className="mt-2 space-y-1">
-                        {topItems(snapshotSummary.ordersToInvoice, 3).map((order) => (
-                          <li key={order.id}>Order {order.id} · {order.customer_name ?? `customer ${order.customer_id}`} · {money(order.total)}</li>
-                        ))}
-                      </ul>
-                    ) : <p className="mt-2 text-[#8790a0]">None in the loaded snapshot.</p>}
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-xs leading-5 text-[#d9e2ee]">
-                    <div className="font-semibold text-[#f7f8fb]">Low-stock products</div>
-                    {snapshotSummary.lowStockDetails.length ? (
-                      <ul className="mt-2 space-y-1">
-                        {topItems(snapshotSummary.lowStockDetails, 3).map(({ product, stock }) => (
-                          <li key={product.id}>{product.name} · {product.sku} · on hand {stock.quantity_on_hand} / threshold {stock.low_stock_threshold}</li>
-                        ))}
-                      </ul>
-                    ) : <p className="mt-2 text-[#8790a0]">None in the loaded snapshot.</p>}
-                  </div>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Amount due</div><div className="mt-1 text-lg font-semibold">{money(snapshotSummary.amountDue)}</div></div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Open invoices</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.openInvoiceCount}</div></div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">To invoice</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.ordersToInvoiceCount}</div></div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3"><div className="text-[#8790a0]">Low stock</div><div className="mt-1 text-lg font-semibold">{snapshotSummary.lowStockCount}</div></div>
                 </div>
               ) : null}
+              {snapshotSummary?.recommendedActions.length ? (
+                <ul className="mt-4 space-y-2 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-3 text-xs leading-5 text-amber-50">
+                  {snapshotSummary.recommendedActions.map((action) => <li key={action}>• {action}</li>)}
+                </ul>
+              ) : null}
               <Button
-                className="mt-5 w-full rounded-2xl bg-indigo-300 text-[#080b18] hover:bg-indigo-200"
+                className="mt-4 w-full rounded-2xl bg-indigo-300 text-[#080b18] hover:bg-indigo-200"
                 disabled={snapshotLoading || chatLoading}
                 onClick={generateDailyBriefing}
               >
                 {snapshotLoading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-                Generate briefing from live data
+                Generate live briefing
               </Button>
             </section>
-
-          </aside>
-        </div>
-        ) : null}
+          ) : null}
+        </aside>
       </div>
     </div>
   )

@@ -202,6 +202,7 @@ export default function InvoicesPage() {
       eyebrow="Receivables"
       title="Keep invoices, due dates, and payment actions visible."
       description="Track what is unpaid, what has been collected, and which invoices need action."
+      showHero={false}
     >
       <div className="grid gap-3 md:grid-cols-3">
         <MetricCard label="Open invoices" value={metrics.open} helper="Need payment" tone={metrics.open > 0 ? "warn" : "neutral"} />

@@ -99,6 +99,7 @@ export default function CustomersPage() {
           </Link>
         </Button>
       )}
+      showHero={false}
     >
       <div className="grid gap-3 md:grid-cols-3">
         <MetricCard label="Shown" value={filteredCustomers.length} helper={loading ? "Loading..." : `Page ${page}`} />

@@ -303,40 +303,36 @@ export function OrganizationSettingsClient({ section }: Readonly<{ section: Sett
     <form id="organization-settings-form" onSubmit={handleSave} className="flex w-full flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-[#12141a] sm:text-[26px]">
+          <h1 className="text-2xl font-semibold tracking-normal text-[#f7f8fb] sm:text-[26px]">
             {copy.title}
           </h1>
-          <p className="mt-1 text-[13px] text-[#6b707d]">{copy.description}</p>
+          <p className="mt-1 text-[13px] text-[#9aa4b2]">{copy.description}</p>
         </div>
         <div className="flex gap-3 sm:pt-1">
           <Button
             type="button"
             variant="outline"
-            className="h-9 rounded-md"
+            className="h-9 rounded-md border-white/10 bg-white/[0.04] text-[#d9e2ee] hover:bg-white/[0.08] hover:text-white"
             onClick={() => setForm(initialForm)}
             disabled={saving}
           >
             Discard
           </Button>
-          <Button className="h-9 rounded-md bg-[#17181d] text-white hover:bg-[#262a33]" disabled={saving}>
+          <Button className="h-9 rounded-md bg-[#3f46d8] text-white hover:bg-[#4f57ef]" disabled={saving}>
             <Save className="h-4 w-4" />
             {saving ? "Saving..." : "Save changes"}
           </Button>
         </div>
       </div>
 
-      <div className="rounded-lg border border-white/10 bg-white/[0.04] px-4 py-4 text-[13px] font-medium text-emerald-300">
-        Current subpage is selected in the sidebar. No in-page nav is repeated here.
-      </div>
-
       <section className="rounded-lg border border-white/10 bg-white/[0.04] p-4 sm:p-5">
         <div className="mb-5 flex items-start gap-3">
-          <div className="rounded-md border border-white/10 bg-[#f8f9fa] p-2 text-[#6b707d]">
+          <div className="rounded-md border border-white/10 bg-white/[0.06] p-2 text-[#cbd5e1]">
             {copy.icon}
           </div>
           <div>
-            <h2 className="text-[15px] font-semibold text-[#12141a]">{copy.panelTitle}</h2>
-            <p className="mt-1 text-xs text-[#6b707d]">{copy.panelDescription}</p>
+            <h2 className="text-[15px] font-semibold text-[#f7f8fb]">{copy.panelTitle}</h2>
+            <p className="mt-1 text-xs text-[#9aa4b2]">{copy.panelDescription}</p>
           </div>
         </div>
 
@@ -391,7 +387,7 @@ export function OrganizationSettingsClient({ section }: Readonly<{ section: Sett
                 onCheckedChange={(checked) => updateForm(item.key, checked)}
               />
             ))}
-            <p className="md:col-span-2 text-xs text-[#6b707d]">
+            <p className="md:col-span-2 text-xs text-[#9aa4b2]">
               {enabledCount}/{capabilityToggles.length} organization capabilities enabled. {featureFlags.length} backend feature flag records loaded.
             </p>
           </div>
@@ -416,12 +412,12 @@ export function OrganizationSettingsClient({ section }: Readonly<{ section: Sett
 
         {section === "lora" ? (
           <FieldGroup>
-            <div className="rounded-lg border border-amber-300/30 bg-amber-50/80 p-4 text-sm leading-6 text-amber-950">
+            <div className="rounded-lg border border-amber-300/20 bg-amber-400/10 p-4 text-sm leading-6 text-amber-50">
               <div className="flex items-start gap-3">
-                <Bot className="mt-0.5 h-5 w-5 text-amber-700" />
+                <Bot className="mt-0.5 h-5 w-5 text-amber-200" />
                 <div>
                   <div className="font-semibold">Lora AI is opt-in for each organization.</div>
-                  <p className="mt-1 text-xs text-amber-900/80">
+                  <p className="mt-1 text-xs text-amber-50/75">
                     When enabled, Opslora may send organization operations data such as customers, orders, invoices, payments, inventory, and generated snapshots to the Lora AI service so it can answer questions and prepare briefings. Keep this off if the organization has not consented.
                   </p>
                 </div>
@@ -433,7 +429,7 @@ export function OrganizationSettingsClient({ section }: Readonly<{ section: Sett
               checked={form.lora_ai_enabled}
               onCheckedChange={(checked) => updateForm("lora_ai_enabled", checked)}
             />
-            <p className="text-xs leading-5 text-[#6b707d]">
+            <p className="text-xs leading-5 text-[#9aa4b2]">
               {formatLoraConsentStatus(form)}
             </p>
           </FieldGroup>
@@ -460,7 +456,7 @@ function TextField({
 }>) {
   return (
     <Field>
-      <FieldLabel htmlFor={id} className="text-xs font-medium text-[#12141a]">
+      <FieldLabel htmlFor={id} className="text-xs font-medium text-[#d9e2ee]">
         {label}
       </FieldLabel>
       <Input
@@ -470,7 +466,7 @@ function TextField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-9 rounded-md border-white/10 text-xs"
+        className="h-9 rounded-md border-white/10 bg-white/[0.04] text-xs text-[#f7f8fb] placeholder:text-[#8790a0]"
       />
     </Field>
   )
@@ -493,7 +489,7 @@ function NumberField({
 }>) {
   return (
     <Field>
-      <FieldLabel htmlFor={id} className="text-xs font-medium text-[#12141a]">
+      <FieldLabel htmlFor={id} className="text-xs font-medium text-[#d9e2ee]">
         {label}
       </FieldLabel>
       <Input
@@ -504,7 +500,7 @@ function NumberField({
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-9 rounded-md border-white/10 text-xs"
+        className="h-9 rounded-md border-white/10 bg-white/[0.04] text-xs text-[#f7f8fb] placeholder:text-[#8790a0]"
       />
     </Field>
   )
@@ -532,7 +528,7 @@ function ToggleSwitch({
         onClick={() => onCheckedChange(!checked)}
         className={[
           "relative h-[22px] w-[38px] rounded-full transition-colors",
-          checked ? "bg-[#17181d]" : "bg-[#eceef2]",
+          checked ? "bg-[#3f46d8]" : "bg-white/15",
         ].join(" ")}
       >
         <span

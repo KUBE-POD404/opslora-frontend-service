@@ -436,7 +436,8 @@ export default function OrdersPage() {
                     Create order
                 </Button>
             )}
-              >
+            showHero={false}
+        >
             <div className="grid gap-3 md:grid-cols-3">
                 <MetricCard label="Draft orders" value={createdCount} helper="Need confirmation" tone={createdCount > 0 ? "warn" : "neutral"} />
                 <MetricCard label="Confirmed" value={confirmedCount} helper="Ready for invoicing" tone="ok" />
